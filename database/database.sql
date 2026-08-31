@@ -199,6 +199,42 @@ CREATE TABLE `tour_package_itineraries` (
   CONSTRAINT `fk_tour_itineraries_package` FOREIGN KEY (`tour_package_id`) REFERENCES `tour_packages` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 10. Table: customers
+-- ----------------------------------------------------------
+CREATE TABLE `customers` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `customer_code` VARCHAR(30) NOT NULL,
+  `first_name` VARCHAR(100) NULL DEFAULT NULL,
+  `last_name` VARCHAR(100) NULL DEFAULT NULL,
+  `name` VARCHAR(200) NOT NULL,
+  `email` VARCHAR(150) NULL DEFAULT NULL,
+  `phone` VARCHAR(30) NOT NULL,
+  `alternate_phone` VARCHAR(30) NULL DEFAULT NULL,
+  `gender` ENUM('male', 'female', 'other') NULL DEFAULT NULL,
+  `date_of_birth` DATE NULL DEFAULT NULL,
+  `address` TEXT NULL DEFAULT NULL,
+  `city` VARCHAR(100) NULL DEFAULT NULL,
+  `state` VARCHAR(100) NULL DEFAULT NULL,
+  `country` VARCHAR(100) NOT NULL DEFAULT 'Bangladesh',
+  `postal_code` VARCHAR(20) NULL DEFAULT NULL,
+  `passport_number` VARCHAR(50) NULL DEFAULT NULL,
+  `passport_expiry` DATE NULL DEFAULT NULL,
+  `national_id` VARCHAR(50) NULL DEFAULT NULL,
+  `profile_photo` VARCHAR(255) NULL DEFAULT NULL,
+  `notes` TEXT NULL DEFAULT NULL,
+  `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_customer_code` (`customer_code`),
+  INDEX `idx_customers_email` (`email`),
+  INDEX `idx_customers_phone` (`phone`),
+  INDEX `idx_customers_status` (`status`),
+  INDEX `idx_customers_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -212,7 +248,7 @@ INSERT INTO `roles` (`id`, `name`, `slug`, `description`) VALUES
 (2, 'Manager', 'manager', 'Operational management and reporting access'),
 (3, 'Staff', 'staff', 'Standard frontline staff access');
 
--- Seed Permissions (Phase 01 + Phase 02)
+-- Seed Permissions (Phase 01 + Phase 02 + Phase 03)
 INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (1, 'View Dashboard', 'dashboard.view', 'Access to system overview and metrics'),
 (2, 'View Profile', 'profile.view', 'View own account profile details'),
@@ -233,22 +269,30 @@ INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (17, 'View Tour Destinations', 'destinations.view', 'View tour destination list'),
 (18, 'Create Tour Destinations', 'destinations.create', 'Create new tour destinations'),
 (19, 'Edit Tour Destinations', 'destinations.edit', 'Modify existing tour destinations'),
-(20, 'Delete Tour Destinations', 'destinations.delete', 'Soft-delete tour destinations');
+(20, 'Delete Tour Destinations', 'destinations.delete', 'Soft-delete tour destinations'),
+(21, 'View Customers', 'customers.view', 'View customer directory and profile details'),
+(22, 'Create Customers', 'customers.create', 'Add and register new customers'),
+(23, 'Edit Customers', 'customers.edit', 'Update existing customer profiles'),
+(24, 'Delete Customers', 'customers.delete', 'Soft delete customer profiles'),
+(25, 'Restore Customers', 'customers.restore', 'Restore soft-deleted customer profiles');
 
--- Assign Permissions to Administrator (All permissions)
+-- Assign Permissions to Administrator (All permissions 1-25)
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
-(1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20);
+(1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
+(1, 21), (1, 22), (1, 23), (1, 24), (1, 25);
 
 -- Assign Permissions to Manager
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5),
-(2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 17), (2, 18), (2, 19);
+(2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 17), (2, 18), (2, 19),
+(2, 21), (2, 22), (2, 23), (2, 24);
 
 -- Assign Permissions to Staff
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (3, 1), (3, 2), (3, 3), (3, 4),
-(3, 9), (3, 13), (3, 17);
+(3, 9), (3, 13), (3, 17),
+(3, 21), (3, 22);
 
 -- Seed Default Administrator
 -- Default credentials: admin@example.com / Admin@12345
@@ -350,3 +394,26 @@ INSERT INTO `tour_package_itineraries` (`tour_package_id`, `day_number`, `title`
 (2, 2, 'Sunrise at Helipad, Alutila Cave & Return', 'Wake up at 5:30 AM to witness the ocean of clouds from Sajek Helipad. Breakfast and check out. Depart Sajek at 10:00 AM escort. Visit Risang Waterfall and Alutila Mysterious Cave in Khagrachhari. Dinner in Khagrachhari town and board night coach to Dhaka.'),
 (3, 1, 'Tea Estates & Monipuri Tribal Village', 'Morning train/bus from Dhaka to Sreemangal. Check-in to resort. Visit Finlay and BTRI Tea Gardens. Experience cycling through tea trails. Visit Monipuri tribal handloom village in the evening. Taste Nilkantha 7-layer tea.'),
 (3, 2, 'Lawachara Rainforest Hike & Madhabpur Lake', 'Early morning trek inside Lawachara National Park. Spot bird species and endangered gibbons. Visit Madhabpur Lake adorned with water lilies. Afternoon lunch and depart for Dhaka.');
+
+-- Seed Sample Customers
+INSERT INTO `customers` (
+  `id`, `customer_code`, `first_name`, `last_name`, `name`, `email`, `phone`, `alternate_phone`, 
+  `gender`, `date_of_birth`, `address`, `city`, `state`, `country`, `postal_code`, 
+  `passport_number`, `passport_expiry`, `national_id`, `profile_photo`, `notes`, `status`, `created_at`, `updated_at`
+) VALUES
+(
+  1, 'CUS-00001', 'Tanvir', 'Ahmed', 'Tanvir Ahmed', 'tanvir.ahmed@example.com', '+8801711000001', '+8801811000001',
+  'male', '1990-05-15', 'House 12, Road 5, Dhanmondi', 'Dhaka', 'Dhaka Division', 'Bangladesh', '1209',
+  'A01234567', '2030-12-31', '19901234567890123', NULL, 'VIP corporate client, prefers window seat and quiet hotels.', 'active', NOW(), NOW()
+),
+(
+  2, 'CUS-00002', 'Nusrat', 'Jahan', 'Nusrat Jahan', 'nusrat.jahan@example.com', '+8801911000002', NULL,
+  'female', '1995-08-22', 'Flat 4B, Green Road', 'Dhaka', 'Dhaka Division', 'Bangladesh', '1205',
+  'B09876543', '2028-06-15', '19959876543210987', NULL, 'Travels with family, interested in beach resort packages.', 'active', NOW(), NOW()
+),
+(
+  3, 'CUS-00003', 'Mohammad', 'Rahim', 'Mohammad Rahim', 'm.rahim@example.com', '+8801811000003', NULL,
+  'male', '1988-11-03', 'GEC Circle, Nasirabad', 'Chittagong', 'Chittagong Division', 'Bangladesh', '4000',
+  NULL, NULL, '19881122334455667', NULL, 'Frequent domestic trekker.', 'active', NOW(), NOW()
+);
+

@@ -12,6 +12,7 @@ $isSettings = strpos($currentScript, '/modules/settings/') !== false;
 $isTourPackages = strpos($currentScript, '/modules/tours/index.php') !== false || strpos($currentScript, '/modules/tours/create.php') !== false || strpos($currentScript, '/modules/tours/edit.php') !== false || strpos($currentScript, '/modules/tours/view.php') !== false;
 $isCategories = strpos($currentScript, '/modules/tours/categories.php') !== false;
 $isDestinations = strpos($currentScript, '/modules/tours/destinations.php') !== false;
+$isCustomers = strpos($currentScript, '/modules/customers/') !== false;
 ?>
 <!-- Sidebar Navigation -->
 <aside id="admin-sidebar">
@@ -64,10 +65,9 @@ $isDestinations = strpos($currentScript, '/modules/tours/destinations.php') !== 
                 <span>Customers</span>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 03">
+                <a href="<?= url('modules/customers/index.php'); ?>" class="sidebar-nav-link <?= $isCustomers ? 'active' : ''; ?>">
                     <i class="bi bi-people nav-icon"></i>
                     <span class="nav-link-text">Customers</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
 

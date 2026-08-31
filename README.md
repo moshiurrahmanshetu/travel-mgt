@@ -8,6 +8,7 @@ A Tour & Travel Booking Management System built with **PURE RAW PHP**, MySQL, PD
 
 - **Phase 01:** Project Foundation, Core Layout, Database Layer & Authentication Engine
 - **Phase 02:** Avatar Upload Engine Fix + Tour Package Management (Categories, Destinations, Packages, Gallery & Multi-Day Itineraries)
+- **Phase 03:** Customer Management (Profiles, Contact Info, Passports/NID, Photo Uploads, Safe Soft-Delete & Restore)
 
 > **Architecture Notice:** This is **NOT** a Laravel or MVC framework project. It uses a clean, maintainable, modular Raw PHP directory convention suitable for commercial PHP web applications.
 
@@ -52,11 +53,12 @@ travel-mgt/
 ├── database/
 │   ├── 001_authentication.sql# Phase 01 authentication & role schema migration
 │   ├── 002_tour_management.sql # Phase 02 tour package management schema migration
+│   ├── 003_customer_management.sql # Phase 03 customer management schema migration
 │   └── database.sql          # Complete cumulative database creation and seed script
 │
 ├── includes/
 │   ├── auth_check.php        # Reusable authentication guard
-│   ├── functions.php         # Core reusable helper functions
+│   ├── functions.php         # Core reusable helper functions & image validator
 │   ├── csrf.php              # CSRF token generation and validation
 │   ├── flash.php             # Flash notification alerts system
 │   ├── header.php            # Public HTML header
@@ -73,7 +75,7 @@ travel-mgt/
 │   ├── profile/
 │   │   ├── index.php         # User profile view and update forms
 │   │   ├── update.php        # Profile information update processor
-│   │   ├── upload-avatar.php # Secure avatar image upload processor (Fixed)
+│   │   ├── upload-avatar.php # Secure avatar image upload processor
 │   │   └── change-password.php # Password change form and processor
 │   │
 │   ├── tours/
@@ -94,6 +96,16 @@ travel-mgt/
 │   │   ├── destination-update.php # Destination update processor
 │   │   └── destination-delete.php # Safe destination delete processor (dependency checked)
 │   │
+│   ├── customers/
+│   │   ├── index.php         # Customer directory, search, filter, and pagination
+│   │   ├── create.php        # Customer registration form with live photo preview
+│   │   ├── store.php         # Customer store processor with auto code generation (CUS-XXXXX)
+│   │   ├── view.php          # CRM-style customer profile & booking history placeholder
+│   │   ├── edit.php          # Customer profile editor
+│   │   ├── update.php        # Customer update processor with safe photo replacement
+│   │   ├── delete.php        # Customer soft-delete processor
+│   │   └── restore.php       # Soft-deleted customer restoration processor
+│   │
 │   ├── users/
 │   │   └── index.php         # Users & Roles foundation overview
 │   │
@@ -103,7 +115,8 @@ travel-mgt/
 ├── uploads/
 │   ├── avatars/              # Storage directory for user profile avatars
 │   ├── tours/                # Storage directory for tour cover & gallery images
-│   └── destinations/         # Storage directory for destination cover images
+│   ├── destinations/         # Storage directory for destination cover images
+│   └── customers/            # Storage directory for customer profile photos
 │
 ├── .htaccess                 # Apache server configuration and security
 ├── index.php                 # Root entry router (redirects to dashboard or login)
@@ -156,23 +169,24 @@ Get-Content c:\xampp\htdocs\travel-mgt\database\database.sql | & "C:\xampp\mysql
 
 1. **Prepared Statements (PDO):** All database interactions use parameterized queries to eliminate SQL Injection risks.
 2. **Bcrypt Password Hashing:** Passwords are hashed and verified using PHP's native `password_hash()` and `password_verify()` with default bcrypt cost. Plaintext passwords are never stored.
-3. **CSRF Protection:** Synchronizer token pattern with `hash_equals()` validation on all state-changing POST forms (login, profile update, avatar upload, password change, tour create/edit/delete, category create/edit/delete, destination create/edit/delete).
+3. **CSRF Protection:** Synchronizer token pattern with `hash_equals()` validation on all state-changing POST forms.
 4. **Session Hardening:** Session IDs are regenerated via `session_regenerate_id(true)` upon successful authentication. Session cookies use `HttpOnly`, `SameSite=Lax`, and secure flags.
-5. **Secure Avatar & Image Uploads:** Full validation via `is_uploaded_file()`, `getimagesize()`, MIME allowlisting via `finfo` (`image/jpeg`, `image/pjpeg`, `image/png`, `image/x-png`, `image/webp`), size enforcement, safe randomized filename generation, and safe post-update unlinking of old files.
-6. **Soft Deletion & Foreign Key Safety:** Tour packages, categories, and destinations use soft deletes (`deleted_at`). Categories and destinations cannot be deleted if assigned to active tour packages.
-7. **Role-Based Access Control (RBAC):** Server-side permission guards (`require_permission()`) on all Tour, Category, and Destination actions.
+5. **Generic Reusable Image Validation:** Centralized `validate_uploaded_image()` helper enforcing `is_uploaded_file()`, `getimagesize()` binary checks, MIME allowlisting (`image/jpeg`, `image/pjpeg`, `image/png`, `image/x-png`, `image/webp`), size enforcement, safe randomized filename generation, and safe post-update unlinking of old files.
+6. **Soft Deletion & Foreign Key Safety:** Customers, tour packages, categories, and destinations use soft deletes (`deleted_at`). Customer primary keys are permanent InnoDB integers ready for foreign key bindings in Phase 04 Bookings.
+7. **Role-Based Access Control (RBAC):** Server-side permission guards (`require_permission()`) on all Customer, Tour, Category, and Destination actions.
 
 ---
 
 ## 🧭 Navigation & Module Status
 
-- **Dashboard:** Operational (`modules/dashboard/index.php`)
+- **Dashboard:** Operational with live counts (`modules/dashboard/index.php`)
 - **Tour Packages:** Operational (`modules/tours/index.php`)
 - **Tour Categories:** Operational (`modules/tours/categories.php`)
 - **Tour Destinations:** Operational (`modules/tours/destinations.php`)
+- **Customers:** Operational (`modules/customers/index.php`)
 - **My Profile:** Operational (`modules/profile/index.php`)
 - **Avatar Upload:** Operational (`modules/profile/upload-avatar.php`)
 - **Change Password:** Operational (`modules/profile/change-password.php`)
 - **Users & Roles Foundation:** Operational (`modules/users/index.php`)
 - **Settings Foundation:** Operational (`modules/settings/index.php`)
-- **Future Modules (Phases 03–06):** Customers, Bookings, Payments, Reports are marked as *Coming Soon* in the navigation.
+- **Future Modules (Phases 04–06):** Bookings, Payments, Reports are marked as *Coming Soon* in the navigation.

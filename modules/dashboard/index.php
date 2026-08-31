@@ -9,10 +9,11 @@ $pageTitle = 'Dashboard Overview';
 require_once __DIR__ . '/../../includes/admin_header.php';
 require_once __DIR__ . '/../../includes/admin_sidebar.php';
 
-// Fetch Live Tour Stats
+// Fetch Live Stats
 $totalPackages = 0;
 $totalCategories = 0;
 $totalDestinations = 0;
+$totalCustomers = 0;
 $recentPackages = [];
 
 try {
@@ -22,13 +23,17 @@ try {
     $stmtPkg = $pdo->query("SELECT COUNT(*) FROM tour_packages WHERE deleted_at IS NULL");
     $totalPackages = (int)$stmtPkg->fetchColumn();
 
+    // Count destinations
+    $stmtDest = $pdo->query("SELECT COUNT(*) FROM tour_destinations WHERE deleted_at IS NULL");
+    $totalDestinations = (int)$stmtDest->fetchColumn();
+
     // Count categories
     $stmtCat = $pdo->query("SELECT COUNT(*) FROM tour_categories WHERE deleted_at IS NULL");
     $totalCategories = (int)$stmtCat->fetchColumn();
 
-    // Count destinations
-    $stmtDest = $pdo->query("SELECT COUNT(*) FROM tour_destinations WHERE deleted_at IS NULL");
-    $totalDestinations = (int)$stmtDest->fetchColumn();
+    // Count active customers (Phase 03)
+    $stmtCus = $pdo->query("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL");
+    $totalCustomers = (int)$stmtCus->fetchColumn();
 
     // Fetch recent packages
     $stmtRecent = $pdo->query("
@@ -106,16 +111,16 @@ try {
                 </a>
             </div>
 
-            <!-- Total Categories (Live) -->
+            <!-- Total Customers (Live Phase 03) -->
             <div class="col-12 col-sm-6 col-xl-3">
-                <a href="<?= url('modules/tours/categories.php'); ?>" class="text-decoration-none">
+                <a href="<?= url('modules/customers/index.php'); ?>" class="text-decoration-none">
                     <div class="kpi-card">
                         <div class="kpi-icon-box kpi-icon-warning">
-                            <i class="bi bi-tags"></i>
+                            <i class="bi bi-people"></i>
                         </div>
                         <div class="kpi-info">
-                            <div class="kpi-title">Categories</div>
-                            <div class="kpi-value"><?= $totalCategories; ?></div>
+                            <div class="kpi-title">Total Customers</div>
+                            <div class="kpi-value"><?= $totalCustomers; ?></div>
                         </div>
                     </div>
                 </a>
