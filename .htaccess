@@ -1,0 +1,26 @@
+# ==========================================================
+# Tour & Travel Booking Management System
+# Apache Configuration (.htaccess)
+# ==========================================================
+
+# Disable directory browsing
+Options -Indexes
+
+# Set default directory index
+DirectoryIndex index.php index.html
+
+# Protect sensitive database files and configuration backups
+<FilesMatch "\.(sql|log|ini|env|bak)$">
+    Require all denied
+</FilesMatch>
+
+# Basic Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Enable UTF-8 encoding default
+AddDefaultCharset UTF-8
