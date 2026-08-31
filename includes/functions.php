@@ -74,6 +74,11 @@ function redirect(string $path): void
  */
 function old(string $key, $default = '')
 {
+    // Security Rule: Never repopulate password fields
+    if (in_array(strtolower($key), ['password', 'confirm_password', 'password_confirmation', 'current_password', 'new_password', 'confirm_new_password'], true)) {
+        return '';
+    }
+
     if (isset($_SESSION['_old_input'][$key])) {
         $val = $_SESSION['_old_input'][$key];
         return $val;
@@ -99,7 +104,15 @@ function old(string $key, $default = '')
 function flash_old_input(array $input): void
 {
     // Remove sensitive fields
-    unset($input['password'], $input['password_confirmation'], $input['current_password'], $input['csrf_token']);
+    unset(
+        $input['password'],
+        $input['confirm_password'],
+        $input['password_confirmation'],
+        $input['current_password'],
+        $input['new_password'],
+        $input['confirm_new_password'],
+        $input['csrf_token']
+    );
     $_SESSION['_old_input'] = $input;
 }
 

@@ -31,8 +31,6 @@ try {
 } catch (PDOException $e) {
     error_log('Load roles error: ' . $e->getMessage());
 }
-
-$old = get_old_input();
 ?>
 
 <!-- Main Content Area -->
@@ -84,7 +82,7 @@ $old = get_old_input();
                                         name="first_name" 
                                         required 
                                         placeholder="e.g. Moshiur"
-                                        value="<?= e($old['first_name'] ?? ''); ?>"
+                                        value="<?= e(old('first_name')); ?>"
                                     >
                                 </div>
 
@@ -97,7 +95,7 @@ $old = get_old_input();
                                         name="last_name" 
                                         required 
                                         placeholder="e.g. Rahman"
-                                        value="<?= e($old['last_name'] ?? ''); ?>"
+                                        value="<?= e(old('last_name')); ?>"
                                     >
                                 </div>
                             </div>
@@ -112,7 +110,7 @@ $old = get_old_input();
                                         name="email" 
                                         required 
                                         placeholder="user@example.com"
-                                        value="<?= e($old['email'] ?? ''); ?>"
+                                        value="<?= e(old('email')); ?>"
                                     >
                                     <small class="text-muted">Must be unique and active.</small>
                                 </div>
@@ -125,13 +123,13 @@ $old = get_old_input();
                                         class="form-control" 
                                         name="phone" 
                                         placeholder="e.g. +880 1700-000000"
-                                        value="<?= e($old['phone'] ?? ''); ?>"
+                                        value="<?= e(old('phone')); ?>"
                                     >
                                 </div>
                             </div>
 
                             <div class="row g-3 mb-3">
-                                <!-- Password -->
+                                <!-- Password (Never Repopulated) -->
                                 <div class="col-12 col-md-6">
                                     <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
                                     <input 
@@ -145,7 +143,7 @@ $old = get_old_input();
                                     <small class="text-muted">Minimum 8 characters with letters & numbers.</small>
                                 </div>
 
-                                <!-- Confirm Password -->
+                                <!-- Confirm Password (Never Repopulated) -->
                                 <div class="col-12 col-md-6">
                                     <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
                                     <input 
@@ -166,7 +164,7 @@ $old = get_old_input();
                                     <select class="form-select" name="role_id" required>
                                         <option value="">-- Select System Role --</option>
                                         <?php foreach ($roles as $r): ?>
-                                            <option value="<?= (int)$r['id']; ?>" <?= (isset($old['role_id']) && (int)$old['role_id'] === (int)$r['id']) ? 'selected' : ''; ?>>
+                                            <option value="<?= (int)$r['id']; ?>" <?= (string)old('role_id') === (string)$r['id'] ? 'selected' : ''; ?>>
                                                 <?= e($r['name']); ?> <?= !empty($r['description']) ? '— ' . e($r['description']) : ''; ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -177,8 +175,8 @@ $old = get_old_input();
                                 <div class="col-12 col-md-6">
                                     <label class="form-label fw-semibold">Account Status <span class="text-danger">*</span></label>
                                     <select class="form-select" name="status" required>
-                                        <option value="active" <?= (!isset($old['status']) || $old['status'] === 'active') ? 'selected' : ''; ?>>Active (Can login)</option>
-                                        <option value="inactive" <?= (isset($old['status']) && $old['status'] === 'inactive') ? 'selected' : ''; ?>>Inactive (Suspended)</option>
+                                        <option value="active" <?= old('status', 'active') === 'active' ? 'selected' : ''; ?>>Active (Can login)</option>
+                                        <option value="inactive" <?= old('status') === 'inactive' ? 'selected' : ''; ?>>Inactive (Suspended)</option>
                                     </select>
                                 </div>
                             </div>
@@ -212,4 +210,7 @@ $old = get_old_input();
         </div>
     </div>
 
-<?php require_once __DIR__ . '/../../includes/admin_footer.php'; ?>
+<?php 
+clear_old_input();
+require_once __DIR__ . '/../../includes/admin_footer.php'; 
+?>

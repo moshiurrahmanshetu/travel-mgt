@@ -51,8 +51,8 @@ try {
     error_log('Load permissions error: ' . $e->getMessage());
 }
 
-$old = get_old_input();
-$selectedPerms = $old['permissions'] ?? [];
+$selectedPerms = old('permissions', []);
+$selectedPermIds = is_array($selectedPerms) ? array_map('intval', $selectedPerms) : [];
 ?>
 
 <!-- Main Content Area -->
@@ -100,7 +100,7 @@ $selectedPerms = $old['permissions'] ?? [];
                                 name="name" 
                                 required 
                                 placeholder="e.g. Booking Coordinator" 
-                                value="<?= e($old['name'] ?? ''); ?>"
+                                value="<?= e(old('name')); ?>"
                             >
                             <small class="text-muted">Must be descriptive and unique.</small>
                         </div>
@@ -111,7 +111,7 @@ $selectedPerms = $old['permissions'] ?? [];
                                 class="form-control" 
                                 name="description" 
                                 placeholder="e.g. Frontline staff responsible for managing bookings and client payments" 
-                                value="<?= e($old['description'] ?? ''); ?>"
+                                value="<?= e(old('description')); ?>"
                             >
                         </div>
                     </div>
@@ -150,7 +150,7 @@ $selectedPerms = $old['permissions'] ?? [];
                                     </div>
                                     <div class="d-flex flex-column gap-2">
                                         <?php foreach ($groupItems as $item): 
-                                            $isChecked = in_array((string)$item['id'], array_map('strval', $selectedPerms), true);
+                                            $isChecked = in_array((int)$item['id'], $selectedPermIds, true);
                                         ?>
                                             <div class="form-check">
                                                 <input 
@@ -217,4 +217,7 @@ $selectedPerms = $old['permissions'] ?? [];
     });
     </script>
 
-<?php require_once __DIR__ . '/../../includes/admin_footer.php'; ?>
+<?php 
+clear_old_input();
+require_once __DIR__ . '/../../includes/admin_footer.php'; 
+?>

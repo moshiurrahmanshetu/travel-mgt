@@ -18,6 +18,7 @@ $statusParam = $_GET['status'] ?? '';
 $isBookingsAll = $isBookings && empty($statusParam) && (strpos($currentScript, 'create.php') === false && strpos($currentScript, 'edit.php') === false && strpos($currentScript, 'view.php') === false);
 $isBookingsPending = $isBookings && $statusParam === 'pending';
 $isBookingsConfirmed = $isBookings && $statusParam === 'confirmed';
+$isBookingsCancelled = $isBookings && $statusParam === 'cancelled';
 $isPayments = strpos($currentScript, '/modules/payments/') !== false;
 $isReports = strpos($currentScript, '/modules/reports/') !== false;
 $isReportsOverview = $isReports && (strpos($currentScript, 'index.php') !== false);
