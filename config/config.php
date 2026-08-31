@@ -41,6 +41,9 @@ define('DB_CHARSET', 'utf8mb4');
 define('ROOT_PATH', realpath(__DIR__ . '/..'));
 define('UPLOAD_PATH', ROOT_PATH . DIRECTORY_SEPARATOR . 'uploads');
 define('AVATAR_PATH', UPLOAD_PATH . DIRECTORY_SEPARATOR . 'avatars');
+define('TOUR_PATH', UPLOAD_PATH . DIRECTORY_SEPARATOR . 'tours');
+define('DESTINATION_PATH', UPLOAD_PATH . DIRECTORY_SEPARATOR . 'destinations');
+define('CUSTOMER_PATH', UPLOAD_PATH . DIRECTORY_SEPARATOR . 'customers');
 
 // Detect Base URL
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
@@ -59,6 +62,9 @@ if ($pos !== false) {
 define('APP_URL', rtrim($protocol . $host . $baseSegment, '/'));
 define('UPLOAD_URL', APP_URL . '/uploads');
 define('AVATAR_URL', UPLOAD_URL . '/avatars');
+define('TOUR_URL', UPLOAD_URL . '/tours');
+define('DESTINATION_URL', UPLOAD_URL . '/destinations');
+define('CUSTOMER_URL', UPLOAD_URL . '/customers');
 
 // --------------------------------------------------------------------------
 // Session Initialization

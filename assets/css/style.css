@@ -139,3 +139,6 @@ body.auth-body {
   font-size: 0.8rem;
   margin-bottom: 1.25rem;
 }
+code{
+  color: #8fffd0 !important;
+}

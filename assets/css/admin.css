@@ -627,3 +627,6 @@ body.sidebar-collapsed #admin-main {
     display: none;
   }
 }
+code{
+  /* color: #8fffd0 !important; */
+}

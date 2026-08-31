@@ -368,3 +368,272 @@ function get_avatar_url(?string $avatarFilename): ?string
 
     return null;
 }
+
+/**
+ * Generate a clean URL-friendly slug
+ * 
+ * @param string $text
+ * @return string
+ */
+function slugify(string $text): string
+{
+    // Replace non letter or digits by -
+    $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+    // Transliterate
+    if (function_exists('iconv')) {
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+    }
+    // Remove unwanted characters
+    $text = preg_replace('~[^-\w]+~', '', $text);
+    // Trim
+    $text = trim($text, '-');
+    // Remove duplicate -
+    $text = preg_replace('~-+~', '-', $text);
+    // Lowercase
+    $text = strtolower($text);
+
+    return empty($text) ? 'n-a-' . time() : $text;
+}
+
+/**
+ * Calculate discounted final price safely (ensuring never below 0)
+ * 
+ * @param float|int|string $basePrice
+ * @param string $discountType ('none', 'percentage', 'fixed')
+ * @param float|int|string $discountValue
+ * @return float
+ */
+function calculate_discounted_price($basePrice, string $discountType = 'none', $discountValue = 0): float
+{
+    $price = (float)$basePrice;
+    $val = (float)$discountValue;
+
+    if ($discountType === 'percentage' && $val > 0) {
+        $discountAmount = ($price * $val) / 100;
+        $price = $price - $discountAmount;
+    } elseif ($discountType === 'fixed' && $val > 0) {
+        $price = $price - $val;
+    }
+
+    return max(0.0, round($price, 2));
+}
+
+/**
+ * Format a monetary amount with currency symbol
+ * 
+ * @param float|int|string|null $amount
+ * @param int $decimals
+ * @return string
+ */
+function format_currency($amount, int $decimals = 2): string
+{
+    $val = (float)($amount ?? 0);
+    return APP_CURRENCY_SYMBOL . number_format($val, $decimals);
+}
+
+/**
+ * Get tour image URL or placeholder
+ * 
+ * @param string|null $filename
+ * @return string|null
+ */
+function get_tour_image_url(?string $filename): ?string
+{
+    if (empty($filename)) {
+        return null;
+    }
+
+    $filePath = TOUR_PATH . DIRECTORY_SEPARATOR . $filename;
+    if (file_exists($filePath)) {
+        return TOUR_URL . '/' . $filename;
+    }
+
+    return null;
+}
+
+/**
+ * Get destination image URL or placeholder
+ * 
+ * @param string|null $filename
+ * @return string|null
+ */
+function get_destination_image_url(?string $filename): ?string
+{
+    if (empty($filename)) {
+        return null;
+    }
+
+    $filePath = DESTINATION_PATH . DIRECTORY_SEPARATOR . $filename;
+    if (file_exists($filePath)) {
+        return DESTINATION_URL . '/' . $filename;
+    }
+
+    return null;
+}
+
+/**
+ * Get customer profile photo URL or placeholder
+ * 
+ * @param string|null $filename
+ * @return string|null
+ */
+function get_customer_avatar_url(?string $filename): ?string
+{
+    if (empty($filename)) {
+        return null;
+    }
+
+    $filePath = CUSTOMER_PATH . DIRECTORY_SEPARATOR . $filename;
+    if (file_exists($filePath)) {
+        return CUSTOMER_URL . '/' . $filename;
+    }
+
+    return null;
+}
+
+/**
+ * Extract initials from a customer's full name
+ * 
+ * @param string $name
+ * @return string
+ */
+function get_customer_initials(string $name): string
+{
+    $words = explode(' ', trim($name));
+    $initials = '';
+    if (!empty($words[0])) {
+        $initials .= mb_substr($words[0], 0, 1, 'UTF-8');
+    }
+    if (count($words) > 1 && !empty($words[count($words) - 1])) {
+        $initials .= mb_substr($words[count($words) - 1], 0, 1, 'UTF-8');
+    }
+    return strtoupper($initials ?: 'C');
+}
+
+/**
+ * Validate and process an uploaded image file securely
+ * 
+ * @param array $file Single file element from $_FILES array
+ * @param string $destinationDir Target absolute folder path
+ * @param string $filePrefix Prefix for randomized filename (e.g. 'cus_', 'avatar_')
+ * @param int $maxBytes Max allowable file size in bytes (default 2MB)
+ * @return array ['success' => bool, 'filename' => string|null, 'error' => string|null]
+ */
+function validate_uploaded_image(array $file, string $destinationDir, string $filePrefix = 'img_', int $maxBytes = 2097152): array
+{
+    // 1. Check Upload Error Codes
+    if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+        $errorCode = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+        $errorMessages = [
+            UPLOAD_ERR_INI_SIZE   => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
+            UPLOAD_ERR_FORM_SIZE  => 'The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form.',
+            UPLOAD_ERR_PARTIAL    => 'The uploaded file was only partially uploaded.',
+            UPLOAD_ERR_NO_FILE    => 'No file was selected for upload.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder on server.',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+            UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the file upload.'
+        ];
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => $errorMessages[$errorCode] ?? 'An unknown upload error occurred.'
+        ];
+    }
+
+    $tmpPath = $file['tmp_name'] ?? '';
+
+    // 2. Validate Temporary File Origin
+    if (empty($tmpPath) || !is_uploaded_file($tmpPath)) {
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => 'Security check failed: File was not uploaded via a valid HTTP POST request.'
+        ];
+    }
+
+    // 3. Validate File Size
+    if ($file['size'] > $maxBytes) {
+        $maxMb = round($maxBytes / (1024 * 1024), 1);
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => "File size exceeds the allowable limit of {$maxMb}MB."
+        ];
+    }
+
+    // 4. Validate Binary Image Signature & Dimensions via getimagesize
+    $imageInfo = @getimagesize($tmpPath);
+    if ($imageInfo === false) {
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => 'Uploaded file is not a valid image.'
+        ];
+    }
+
+    $detectedImageType = $imageInfo[2] ?? 0;
+    $allowedImageTypes = [
+        IMAGETYPE_JPEG => 'jpg',
+        IMAGETYPE_PNG  => 'png',
+    ];
+    if (defined('IMAGETYPE_WEBP')) {
+        $allowedImageTypes[IMAGETYPE_WEBP] = 'webp';
+    }
+
+    if (!array_key_exists($detectedImageType, $allowedImageTypes)) {
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => 'Unsupported image format. Allowed formats: JPG, PNG, WebP.'
+        ];
+    }
+
+    // 5. Validate MIME type via finfo
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $detectedMime = strtolower($finfo->file($tmpPath));
+    $allowedMimes = [
+        'image/jpeg', 'image/pjpeg', 'image/jpg',
+        'image/png', 'image/x-png',
+        'image/webp', 'image/x-webp'
+    ];
+
+    if (!in_array($detectedMime, $allowedMimes, true)) {
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => 'Invalid image MIME type: ' . e($detectedMime)
+        ];
+    }
+
+    // 6. Ensure Destination Directory Exists
+    if (!is_dir($destinationDir)) {
+        if (!@mkdir($destinationDir, 0755, true)) {
+            return [
+                'success'  => false,
+                'filename' => null,
+                'error'    => 'Failed to initialize destination upload directory.'
+            ];
+        }
+    }
+
+    // 7. Generate Secure Randomized Filename
+    $extension = $allowedImageTypes[$detectedImageType];
+    $newFilename = sprintf('%s%s.%s', $filePrefix, bin2hex(random_bytes(10)), $extension);
+    $destinationPath = rtrim($destinationDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $newFilename;
+
+    // 8. Move File to Final Location
+    if (!move_uploaded_file($tmpPath, $destinationPath)) {
+        return [
+            'success'  => false,
+            'filename' => null,
+            'error'    => 'Failed to move uploaded file to permanent storage.'
+        ];
+    }
+
+    return [
+        'success'  => true,
+        'filename' => $newFilename,
+        'error'    => null
+    ];
+}
+

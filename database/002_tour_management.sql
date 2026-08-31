@@ -1,95 +1,20 @@
 -- ==========================================================
 -- Tour & Travel Booking Management System
--- Phase 01 + Phase 02: Complete Database Schema & Seed Data
--- Main Database File: database.sql
+-- Phase 02: Tour Package Management
+-- Migration File: 002_tour_management.sql
 -- ==========================================================
 
-CREATE DATABASE IF NOT EXISTS `travel_mgt_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `travel_mgt_db`;
-
--- Disable foreign key checks during schema creation
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------------------------------------
--- 1. Table: roles
+-- 1. Table: tour_categories
 -- ----------------------------------------------------------
 DROP TABLE IF EXISTS `tour_package_itineraries`;
 DROP TABLE IF EXISTS `tour_package_images`;
 DROP TABLE IF EXISTS `tour_packages`;
 DROP TABLE IF EXISTS `tour_destinations`;
 DROP TABLE IF EXISTS `tour_categories`;
-DROP TABLE IF EXISTS `role_permissions`;
-DROP TABLE IF EXISTS `users`;
-DROP TABLE IF EXISTS `permissions`;
-DROP TABLE IF EXISTS `roles`;
 
-CREATE TABLE `roles` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(50) NOT NULL,
-  `slug` VARCHAR(50) NOT NULL,
-  `description` VARCHAR(255) DEFAULT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_roles_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------
--- 2. Table: permissions
--- ----------------------------------------------------------
-CREATE TABLE `permissions` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL,
-  `slug` VARCHAR(100) NOT NULL,
-  `description` VARCHAR(255) DEFAULT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_permissions_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------
--- 3. Table: role_permissions
--- ----------------------------------------------------------
-CREATE TABLE `role_permissions` (
-  `role_id` INT UNSIGNED NOT NULL,
-  `permission_id` INT UNSIGNED NOT NULL,
-  PRIMARY KEY (`role_id`, `permission_id`),
-  KEY `idx_role_permissions_role_id` (`role_id`),
-  KEY `idx_role_permissions_permission_id` (`permission_id`),
-  CONSTRAINT `fk_role_permissions_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_role_permissions_permission` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------
--- 4. Table: users
--- ----------------------------------------------------------
-CREATE TABLE `users` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `role_id` INT UNSIGNED NOT NULL,
-  `first_name` VARCHAR(50) NOT NULL,
-  `last_name` VARCHAR(50) NOT NULL,
-  `name` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(100) NOT NULL,
-  `phone` VARCHAR(20) DEFAULT NULL,
-  `password` VARCHAR(255) NOT NULL,
-  `avatar` VARCHAR(255) DEFAULT NULL,
-  `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-  `last_login` DATETIME DEFAULT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` DATETIME DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_users_email` (`email`),
-  KEY `idx_users_role_id` (`role_id`),
-  KEY `idx_users_status` (`status`),
-  KEY `idx_users_deleted_at` (`deleted_at`),
-  CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------
--- 5. Table: tour_categories
--- ----------------------------------------------------------
 CREATE TABLE `tour_categories` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,
@@ -106,7 +31,7 @@ CREATE TABLE `tour_categories` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 6. Table: tour_destinations
+-- 2. Table: tour_destinations
 -- ----------------------------------------------------------
 CREATE TABLE `tour_destinations` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -126,7 +51,7 @@ CREATE TABLE `tour_destinations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 7. Table: tour_packages
+-- 3. Table: tour_packages
 -- ----------------------------------------------------------
 CREATE TABLE `tour_packages` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -170,7 +95,7 @@ CREATE TABLE `tour_packages` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 8. Table: tour_package_images
+-- 4. Table: tour_package_images
 -- ----------------------------------------------------------
 CREATE TABLE `tour_package_images` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -184,7 +109,7 @@ CREATE TABLE `tour_package_images` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 9. Table: tour_package_itineraries
+-- 5. Table: tour_package_itineraries
 -- ----------------------------------------------------------
 CREATE TABLE `tour_package_itineraries` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -199,29 +124,14 @@ CREATE TABLE `tour_package_itineraries` (
   CONSTRAINT `fk_tour_itineraries_package` FOREIGN KEY (`tour_package_id`) REFERENCES `tour_packages` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==========================================================
--- SEED DATA
+-- SEED DATA & PERMISSIONS
 -- ==========================================================
 
--- Seed Roles
-INSERT INTO `roles` (`id`, `name`, `slug`, `description`) VALUES
-(1, 'Administrator', 'administrator', 'Full system access and administrative control'),
-(2, 'Manager', 'manager', 'Operational management and reporting access'),
-(3, 'Staff', 'staff', 'Standard frontline staff access');
-
--- Seed Permissions (Phase 01 + Phase 02)
-INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
-(1, 'View Dashboard', 'dashboard.view', 'Access to system overview and metrics'),
-(2, 'View Profile', 'profile.view', 'View own account profile details'),
-(3, 'Edit Profile', 'profile.edit', 'Modify own account profile details'),
-(4, 'Change Password', 'password.change', 'Update own account password'),
-(5, 'View Users', 'users.view', 'View list of system staff and users'),
-(6, 'Create Users', 'users.create', 'Add new user accounts'),
-(7, 'Edit Users', 'users.edit', 'Update existing user accounts'),
-(8, 'Delete Users', 'users.delete', 'Soft-delete or deactivate user accounts'),
+-- Insert Tour Permissions (IDs 9 through 20)
+INSERT IGNORE INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (9, 'View Tour Packages', 'tours.view', 'View tour package list and details'),
 (10, 'Create Tour Packages', 'tours.create', 'Create new tour packages'),
 (11, 'Edit Tour Packages', 'tours.edit', 'Modify existing tour packages'),
@@ -235,41 +145,21 @@ INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (19, 'Edit Tour Destinations', 'destinations.edit', 'Modify existing tour destinations'),
 (20, 'Delete Tour Destinations', 'destinations.delete', 'Soft-delete tour destinations');
 
--- Assign Permissions to Administrator (All permissions)
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
-(1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20);
+-- Assign Permissions to Administrator (role_id = 1)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) VALUES
+(1, 9), (1, 10), (1, 11), (1, 12),
+(1, 13), (1, 14), (1, 15), (1, 16),
+(1, 17), (1, 18), (1, 19), (1, 20);
 
--- Assign Permissions to Manager
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
-(2, 1), (2, 2), (2, 3), (2, 4), (2, 5),
-(2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 17), (2, 18), (2, 19);
+-- Assign Permissions to Manager (role_id = 2)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) VALUES
+(2, 9), (2, 10), (2, 11), (2, 12),
+(2, 13), (2, 14), (2, 15),
+(2, 17), (2, 18), (2, 19);
 
--- Assign Permissions to Staff
-INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
-(3, 1), (3, 2), (3, 3), (3, 4),
+-- Assign Permissions to Staff (role_id = 3)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (3, 9), (3, 13), (3, 17);
-
--- Seed Default Administrator
--- Default credentials: admin@example.com / Admin@12345
-INSERT INTO `users` (
-  `id`, `role_id`, `first_name`, `last_name`, `name`, `email`, `phone`, `password`, `avatar`, `status`, `last_login`, `created_at`, `updated_at`, `deleted_at`
-) VALUES (
-  1,
-  1,
-  'System',
-  'Administrator',
-  'System Administrator',
-  'admin@example.com',
-  '+880 1700-000000',
-  '$2y$10$ph2GxsknjyDke9r1JWQzC.O0qRITP16Yous89xlsDb4vXPCEZP/Wy',
-  NULL,
-  'active',
-  NULL,
-  NOW(),
-  NOW(),
-  NULL
-);
 
 -- Seed Categories
 INSERT INTO `tour_categories` (`id`, `name`, `slug`, `description`, `status`) VALUES

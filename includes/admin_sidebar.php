@@ -9,6 +9,9 @@ $isDashboard = strpos($currentScript, '/modules/dashboard/') !== false;
 $isProfile = strpos($currentScript, '/modules/profile/') !== false;
 $isUsers = strpos($currentScript, '/modules/users/') !== false;
 $isSettings = strpos($currentScript, '/modules/settings/') !== false;
+$isTourPackages = strpos($currentScript, '/modules/tours/index.php') !== false || strpos($currentScript, '/modules/tours/create.php') !== false || strpos($currentScript, '/modules/tours/edit.php') !== false || strpos($currentScript, '/modules/tours/view.php') !== false;
+$isCategories = strpos($currentScript, '/modules/tours/categories.php') !== false;
+$isDestinations = strpos($currentScript, '/modules/tours/destinations.php') !== false;
 ?>
 <!-- Sidebar Navigation -->
 <aside id="admin-sidebar">
@@ -38,24 +41,21 @@ $isSettings = strpos($currentScript, '/modules/settings/') !== false;
                 <span>Tours</span>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 02">
+                <a href="<?= url('modules/tours/index.php'); ?>" class="sidebar-nav-link <?= $isTourPackages ? 'active' : ''; ?>">
                     <i class="bi bi-box-seam nav-icon"></i>
                     <span class="nav-link-text">Tour Packages</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 02">
+                <a href="<?= url('modules/tours/categories.php'); ?>" class="sidebar-nav-link <?= $isCategories ? 'active' : ''; ?>">
                     <i class="bi bi-tags nav-icon"></i>
                     <span class="nav-link-text">Categories</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 02">
+                <a href="<?= url('modules/tours/destinations.php'); ?>" class="sidebar-nav-link <?= $isDestinations ? 'active' : ''; ?>">
                     <i class="bi bi-geo-alt nav-icon"></i>
                     <span class="nav-link-text">Destinations</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
 
