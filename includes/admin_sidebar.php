@@ -25,6 +25,7 @@ $isReportsBookings = $isReports && (strpos($currentScript, 'bookings.php') !== f
 $isReportsPayments = $isReports && (strpos($currentScript, 'payments.php') !== false);
 $isReportsTours = $isReports && (strpos($currentScript, 'tours.php') !== false);
 $isReportsCustomers = $isReports && (strpos($currentScript, 'customers.php') !== false);
+$isRoles = strpos($currentScript, '/modules/roles/') !== false;
 ?>
 <!-- Sidebar Navigation -->
 <aside id="admin-sidebar">
@@ -158,29 +159,41 @@ $isReportsCustomers = $isReports && (strpos($currentScript, 'customers.php') !==
                 </a>
             </li>
 
+            <!-- USER MANAGEMENT Section -->
+            <?php if (has_permission('users.view') || has_permission('roles.view')): ?>
+                <li class="sidebar-header">
+                    <span>User Management</span>
+                </li>
+                <?php if (has_permission('users.view')): ?>
+                    <li class="nav-item">
+                        <a href="<?= url('modules/users/index.php'); ?>" class="sidebar-nav-link <?= $isUsers ? 'active' : ''; ?>">
+                            <i class="bi bi-people nav-icon"></i>
+                            <span class="nav-link-text">Users</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+                <?php if (has_permission('roles.view')): ?>
+                    <li class="nav-item">
+                        <a href="<?= url('modules/roles/index.php'); ?>" class="sidebar-nav-link <?= $isRoles ? 'active' : ''; ?>">
+                            <i class="bi bi-shield-lock nav-icon"></i>
+                            <span class="nav-link-text">Roles & Permissions</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+            <?php endif; ?>
+
             <!-- SYSTEM Section -->
-            <li class="sidebar-header">
-                <span>System</span>
-            </li>
-            <li class="nav-item">
-                <a href="<?= url('modules/users/index.php'); ?>" class="sidebar-nav-link <?= $isUsers ? 'active' : ''; ?>">
-                    <i class="bi bi-shield-lock nav-icon"></i>
-                    <span class="nav-link-text">Users & Roles</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 06">
-                    <i class="bi bi-journal-text nav-icon"></i>
-                    <span class="nav-link-text">Activity Logs</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="<?= url('modules/settings/index.php'); ?>" class="sidebar-nav-link <?= $isSettings ? 'active' : ''; ?>">
-                    <i class="bi bi-gear nav-icon"></i>
-                    <span class="nav-link-text">Settings</span>
-                </a>
-            </li>
+            <?php if (has_permission('settings.view')): ?>
+                <li class="sidebar-header">
+                    <span>System</span>
+                </li>
+                <li class="nav-item">
+                    <a href="<?= url('modules/settings/index.php'); ?>" class="sidebar-nav-link <?= $isSettings ? 'active' : ''; ?>">
+                        <i class="bi bi-gear nav-icon"></i>
+                        <span class="nav-link-text">Settings</span>
+                    </a>
+                </li>
+            <?php endif; ?>
         </ul>
     </div>
 </aside>

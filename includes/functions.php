@@ -1022,6 +1022,140 @@ function export_data_to_csv(string $filename, array $headers, array $rows): void
     exit;
 }
 
+/**
+ * Retrieve a system configuration setting value by key
+ * 
+ * @param string $key
+ * @param mixed $default
+ * @param bool $refresh
+ * @return string|null
+ */
+function get_setting(string $key, $default = null, bool $refresh = false): ?string
+{
+    global $gSettingsCache;
+
+    if ($gSettingsCache === null || $refresh) {
+        try {
+            $pdo = get_db_connection();
+            $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
+            $gSettingsCache = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (PDOException $e) {
+            error_log('get_setting error: ' . $e->getMessage());
+            $gSettingsCache = [];
+        }
+    }
+
+    return array_key_exists($key, $gSettingsCache) ? ($gSettingsCache[$key] ?? $default) : $default;
+}
+
+/**
+ * Retrieve all system configuration settings as key-value pairs
+ * 
+ * @param bool $refresh
+ * @return array
+ */
+function get_all_settings(bool $refresh = false): array
+{
+    global $gSettingsCache;
+    if ($gSettingsCache === null || $refresh) {
+        try {
+            $pdo = get_db_connection();
+            $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
+            $gSettingsCache = $stmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+        } catch (PDOException $e) {
+            error_log('get_all_settings error: ' . $e->getMessage());
+            $gSettingsCache = [];
+        }
+    }
+    return $gSettingsCache;
+}
+
+/**
+ * Insert or update a system configuration setting
+ * 
+ * @param string $key
+ * @param string|null $value
+ * @return bool
+ */
+function set_setting(string $key, ?string $value): bool
+{
+    global $gSettingsCache;
+    try {
+        $pdo = get_db_connection();
+        $stmt = $pdo->prepare("
+            INSERT INTO settings (setting_key, setting_value, created_at, updated_at)
+            VALUES (:key, :val, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()
+        ");
+        $res = $stmt->execute(['key' => $key, 'val' => $value]);
+        if ($res) {
+            if ($gSettingsCache !== null) {
+                $gSettingsCache[$key] = $value;
+            }
+        }
+        return $res;
+    } catch (PDOException $e) {
+        error_log('set_setting error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Count active non-deleted users who have the Administrator role
+ * 
+ * @return int
+ */
+function count_active_administrators(): int
+{
+    try {
+        $pdo = get_db_connection();
+        $stmt = $pdo->query("
+            SELECT COUNT(*)
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            WHERE r.slug = 'administrator'
+              AND u.status = 'active'
+              AND u.deleted_at IS NULL
+        ");
+        return (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('count_active_administrators error: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Check if the given user is the last active Administrator in the system
+ * 
+ * @param int $userId
+ * @return bool
+ */
+function is_last_active_administrator(int $userId): bool
+{
+    try {
+        $pdo = get_db_connection();
+        $stmt = $pdo->prepare("
+            SELECT u.id, u.status, r.slug AS role_slug
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            WHERE u.id = :id AND u.deleted_at IS NULL
+            LIMIT 1
+        ");
+        $stmt->execute(['id' => $userId]);
+        $user = $stmt->fetch();
+
+        if (!$user || $user['role_slug'] !== 'administrator' || $user['status'] !== 'active') {
+            return false;
+        }
+
+        return count_active_administrators() <= 1;
+    } catch (PDOException $e) {
+        error_log('is_last_active_administrator error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+
 
 
 

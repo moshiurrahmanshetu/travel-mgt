@@ -28,6 +28,7 @@ CREATE TABLE `roles` (
   `name` VARCHAR(50) NOT NULL,
   `slug` VARCHAR(50) NOT NULL,
   `description` VARCHAR(255) DEFAULT NULL,
+  `is_system` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -317,11 +318,13 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- Seed Roles
 INSERT INTO `roles` (`id`, `name`, `slug`, `description`) VALUES
-(1, 'Administrator', 'administrator', 'Full system access and administrative control'),
-(2, 'Manager', 'manager', 'Operational management and reporting access'),
-(3, 'Staff', 'staff', 'Standard frontline staff access');
+-- Seed Roles
+INSERT INTO `roles` (`id`, `name`, `slug`, `description`, `is_system`) VALUES
+(1, 'Administrator', 'administrator', 'Full system access and administrative control', 1),
+(2, 'Manager', 'manager', 'Operational management and reporting access', 1),
+(3, 'Staff', 'staff', 'Standard frontline staff access', 1);
 
--- Seed Permissions (Phase 01 + Phase 02 + Phase 03)
+-- Seed Permissions (Phase 01 through Phase 07)
 INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (1, 'View Dashboard', 'dashboard.view', 'Access to system overview and metrics'),
 (2, 'View Profile', 'profile.view', 'View own account profile details'),
@@ -359,16 +362,25 @@ INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (34, 'Edit Payments', 'payments.edit', 'Can modify payment transaction records'),
 (35, 'Delete Payments', 'payments.delete', 'Can soft-delete payment transactions'),
 (36, 'View Reports', 'reports.view', 'Can view management reports and business analytics dashboards'),
-(37, 'Export Reports', 'reports.export', 'Can download and export report datasets to CSV spreadsheets');
+(37, 'Export Reports', 'reports.export', 'Can download and export report datasets to CSV spreadsheets'),
+(38, 'View Roles', 'roles.view', 'Can view role list and permission mappings'),
+(39, 'Create Roles', 'roles.create', 'Can create new system user roles'),
+(40, 'Edit Roles', 'roles.edit', 'Can update existing roles and role permissions'),
+(41, 'Delete Roles', 'roles.delete', 'Can soft-delete custom user roles'),
+(42, 'View Permissions', 'permissions.view', 'Can view system permission catalog'),
+(43, 'Assign Permissions', 'permissions.assign', 'Can assign permissions to roles'),
+(44, 'View Settings', 'settings.view', 'Can view system configuration and settings'),
+(45, 'Edit Settings', 'settings.edit', 'Can modify system configuration and company information');
 
--- Assign Permissions to Administrator (All permissions 1-37)
+-- Assign Permissions to Administrator (All permissions 1-45)
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
 (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
 (1, 21), (1, 22), (1, 23), (1, 24), (1, 25),
 (1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31),
 (1, 32), (1, 33), (1, 34), (1, 35),
-(1, 36), (1, 37);
+(1, 36), (1, 37),
+(1, 38), (1, 39), (1, 40), (1, 41), (1, 42), (1, 43), (1, 44), (1, 45);
 
 -- Assign Permissions to Manager
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
@@ -377,7 +389,8 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (2, 21), (2, 22), (2, 23), (2, 24),
 (2, 26), (2, 27), (2, 28), (2, 29), (2, 30), (2, 31),
 (2, 32), (2, 33), (2, 34), (2, 35),
-(2, 36), (2, 37);
+(2, 36), (2, 37),
+(2, 38), (2, 42), (2, 44);
 
 -- Assign Permissions to Staff
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
@@ -557,6 +570,32 @@ INSERT INTO `payments` (
   6500.00, 'cash', NULL, 'completed',
   'Full payment received in cash at office counter.', 1, NOW(), NOW()
 );
+
+-- ----------------------------------------------------------
+-- Table: settings (Phase 07)
+-- ----------------------------------------------------------
+DROP TABLE IF EXISTS `settings`;
+CREATE TABLE `settings` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `setting_key` VARCHAR(100) NOT NULL,
+  `setting_value` TEXT NULL DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_settings_key` (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed Default Settings
+INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
+('company_name', 'GlobeTrek Travels & Tours'),
+('company_email', 'info@globetrektravels.com'),
+('company_phone', '+880 1700-000000'),
+('company_address', 'Level 4, Plot 12, Gulshan-2, Dhaka-1212, Bangladesh'),
+('company_website', 'https://www.globetrektravels.com'),
+('currency', 'BDT'),
+('currency_symbol', '৳'),
+('timezone', 'Asia/Dhaka');
+
 
 
 

@@ -190,13 +190,16 @@ Get-Content c:\xampp\htdocs\travel-mgt\database\database.sql | & "C:\xampp\mysql
 
 ## 🛡️ Security & Architecture Rules
 
-1. **Authoritative Source for Payments & Revenue:** The `payments` table is the authoritative single source of truth for financial transactions. Booking totals and completed payments are dynamically aggregated. Cancelled bookings are excluded from active sales calculations.
-2. **Overpayment Protection:** Server-side validation strictly rejects any completed payment whose amount exceeds the current remaining balance of the booking.
-3. **Concurrency Protection with Row-Level Locking:** Payment recording executes inside a database transaction with `SELECT ... FOR UPDATE` row-level locking.
-4. **CSV Export Security (Formula Injection Prevention):** All exported fields starting with dangerous formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are automatically escaped with a leading apostrophe (`'`) to neutralize spreadsheet formula execution vulnerabilities.
-5. **No Synthetic Report Tables:** Reports are dynamically generated using SQL aggregation (`COUNT()`, `SUM()`, `GROUP BY`, `JOIN`) from core entity tables (`tour_packages`, `customers`, `bookings`, `payments`) without duplicating state in static report tables.
-6. **Immutable Transaction Amounts:** Completed payment amounts are immutable in `edit.php` to preserve accounting audit integrity.
-7. **CSRF & RBAC:** All state-changing POST requests require valid CSRF tokens and server-side permission verification (`reports.view`, `reports.export`).
+1. **Role-Based Access Control (RBAC):** Every module enforces granular server-side permissions (`has_permission()` and `require_permission()`).
+2. **Last Administrator Protection:** Server-side guards prevent deleting, deactivating, or demoting the last active Administrator account to eliminate system lockout risks.
+3. **Cross-Role Permission Isolation:** Modifying role permissions only updates that targeted role atomically within a PDO transaction.
+4. **Anti-Escalation Controls:** Non-administrators cannot assign or promote any account to the Administrator role.
+5. **Authoritative Source for Payments & Revenue:** The `payments` table is the authoritative single source of truth for financial transactions. Booking totals and completed payments are dynamically aggregated. Cancelled bookings are excluded from active sales calculations.
+6. **Overpayment Protection:** Server-side validation strictly rejects any completed payment whose amount exceeds the current remaining balance of the booking.
+7. **Concurrency Protection with Row-Level Locking:** Payment recording executes inside a database transaction with `SELECT ... FOR UPDATE` row-level locking.
+8. **CSV Export Security (Formula Injection Prevention):** All exported fields starting with dangerous formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are automatically escaped with a leading apostrophe (`'`).
+9. **No Synthetic Report Tables:** Reports are dynamically generated using SQL aggregation (`COUNT()`, `SUM()`, `GROUP BY`, `JOIN`) from core entity tables (`tour_packages`, `customers`, `bookings`, `payments`).
+10. **CSRF & Password Hashing:** All state-changing POST requests require valid CSRF tokens. Passwords use standard `password_hash()` (BCrypt/Argon2).
 
 ---
 
@@ -220,8 +223,16 @@ Get-Content c:\xampp\htdocs\travel-mgt\database\database.sql | & "C:\xampp\mysql
   - Payment & Collection Reports (`modules/reports/payments.php`)
   - Tour Package Performance (`modules/reports/tours.php`)
   - Customer Summary & Value (`modules/reports/customers.php`)
+- **User Management:** Operational (`modules/users/index.php`)
+  - User Directory (`modules/users/index.php`)
+  - Add New User (`modules/users/create.php`)
+  - Edit User & Role (`modules/users/edit.php`)
+- **Roles & Permissions:** Operational (`modules/roles/index.php`)
+  - Role Directory (`modules/roles/index.php`)
+  - Create Custom Role (`modules/roles/create.php`)
+  - Edit Role & Permissions Matrix (`modules/roles/edit.php`)
+- **System Settings:** Operational (`modules/settings/index.php`)
+  - Company Profile & Localization (`modules/settings/index.php`)
 - **My Profile:** Operational (`modules/profile/index.php`)
 - **Avatar Upload:** Operational (`modules/profile/upload-avatar.php`)
 - **Change Password:** Operational (`modules/profile/change-password.php`)
-- **Users & Roles Foundation:** Operational (`modules/users/index.php`)
-- **Settings Foundation:** Operational (`modules/settings/index.php`)
