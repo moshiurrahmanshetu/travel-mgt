@@ -14,7 +14,11 @@ $totalPackages = 0;
 $totalCategories = 0;
 $totalDestinations = 0;
 $totalCustomers = 0;
+$totalBookings = 0;
+$pendingBookings = 0;
+$confirmedBookings = 0;
 $recentPackages = [];
+$recentBookings = [];
 
 try {
     $pdo = get_db_connection();
@@ -31,9 +35,19 @@ try {
     $stmtCat = $pdo->query("SELECT COUNT(*) FROM tour_categories WHERE deleted_at IS NULL");
     $totalCategories = (int)$stmtCat->fetchColumn();
 
-    // Count active customers (Phase 03)
+    // Count active customers
     $stmtCus = $pdo->query("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL");
     $totalCustomers = (int)$stmtCus->fetchColumn();
+
+    // Count active bookings (Phase 04)
+    $stmtBk = $pdo->query("SELECT COUNT(*) FROM bookings WHERE deleted_at IS NULL");
+    $totalBookings = (int)$stmtBk->fetchColumn();
+
+    $stmtBkPending = $pdo->query("SELECT COUNT(*) FROM bookings WHERE booking_status = 'pending' AND deleted_at IS NULL");
+    $pendingBookings = (int)$stmtBkPending->fetchColumn();
+
+    $stmtBkConfirmed = $pdo->query("SELECT COUNT(*) FROM bookings WHERE booking_status = 'confirmed' AND deleted_at IS NULL");
+    $confirmedBookings = (int)$stmtBkConfirmed->fetchColumn();
 
     // Fetch recent packages
     $stmtRecent = $pdo->query("
@@ -46,6 +60,22 @@ try {
         LIMIT 5
     ");
     $recentPackages = $stmtRecent->fetchAll();
+
+    // Fetch recent bookings (Phase 04)
+    $stmtRecentBk = $pdo->query("
+        SELECT 
+            b.*,
+            c.name AS customer_name,
+            c.customer_code,
+            p.name AS package_name
+        FROM bookings b
+        JOIN customers c ON b.customer_id = c.id
+        JOIN tour_packages p ON b.tour_package_id = p.id
+        WHERE b.deleted_at IS NULL
+        ORDER BY b.id DESC
+        LIMIT 5
+    ");
+    $recentBookings = $stmtRecentBk->fetchAll();
 
 } catch (PDOException $e) {
     error_log('Dashboard stats error: ' . $e->getMessage());
@@ -126,24 +156,105 @@ try {
                 </a>
             </div>
 
-            <!-- Total Bookings (Phase 04 Placeholder) -->
+            <!-- Total Bookings (Live Phase 04) -->
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="kpi-card">
-                    <div class="kpi-icon-box kpi-icon-info">
-                        <i class="bi bi-calendar-check"></i>
+                <a href="<?= url('modules/bookings/index.php'); ?>" class="text-decoration-none">
+                    <div class="kpi-card">
+                        <div class="kpi-icon-box kpi-icon-info">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="kpi-title">Total Bookings</div>
+                            </div>
+                            <div class="kpi-value"><?= $totalBookings; ?></div>
+                        </div>
                     </div>
-                    <div class="kpi-info">
-                        <div class="kpi-title">Total Bookings</div>
-                        <div class="kpi-value">0</div>
-                    </div>
-                </div>
+                </a>
             </div>
         </div>
 
-        <!-- Recent Tour Packages & Quick Actions -->
+        <!-- Recent Tour Packages & Recent Bookings -->
         <div class="row g-3">
-            <!-- Left Column: Recent Tour Packages Table -->
+            <!-- Left Column: Recent Bookings & Tour Packages -->
             <div class="col-12 col-lg-8">
+                <!-- Recent Bookings Table (Phase 04 Integration) -->
+                <div class="admin-card mb-4">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="bi bi-calendar-check me-2 text-primary"></i> Recent Reservations
+                        </h3>
+                        <a href="<?= url('modules/bookings/index.php'); ?>" class="btn btn-outline-secondary btn-sm">
+                            View All Bookings
+                        </a>
+                    </div>
+                    <div class="admin-card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Booking #</th>
+                                        <th>Customer</th>
+                                        <th>Tour Package</th>
+                                        <th>Travel Date</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th class="pe-3 text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($recentBookings)): ?>
+                                        <?php foreach ($recentBookings as $rb): 
+                                            $rbStatusClass = 'bg-secondary';
+                                            if ($rb['booking_status'] === 'pending') $rbStatusClass = 'bg-warning text-dark';
+                                            elseif ($rb['booking_status'] === 'confirmed') $rbStatusClass = 'bg-primary';
+                                            elseif ($rb['booking_status'] === 'completed') $rbStatusClass = 'bg-success';
+                                            elseif ($rb['booking_status'] === 'cancelled') $rbStatusClass = 'bg-danger';
+                                        ?>
+                                            <tr>
+                                                <td class="ps-3">
+                                                    <a href="<?= url('modules/bookings/view.php?id=' . $rb['id']); ?>" class="fw-bold text-decoration-none">
+                                                        <code><?= e($rb['booking_number']); ?></code>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-semibold text-dark"><?= e($rb['customer_name']); ?></div>
+                                                </td>
+                                                <td>
+                                                    <div class="text-dark small" style="max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                        <?= e($rb['package_name']); ?>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="small text-muted"><?= format_date($rb['travel_date'], 'M d, Y'); ?></span>
+                                                </td>
+                                                <td>
+                                                    <strong class="text-dark small"><?= format_currency($rb['total_amount']); ?></strong>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <?= $rbStatusClass; ?>" style="font-size: 0.65rem;">
+                                                        <?= ucfirst(e($rb['booking_status'])); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="pe-3 text-end">
+                                                    <a href="<?= url('modules/bookings/view.php?id=' . $rb['id']); ?>" class="btn btn-outline-secondary btn-sm p-1 px-2" title="View Booking">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4 text-muted">No booking reservations found.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Tour Packages Table -->
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <h3 class="admin-card-title">

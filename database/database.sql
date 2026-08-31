@@ -235,6 +235,50 @@ CREATE TABLE `customers` (
   INDEX `idx_customers_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 11. Table: bookings
+-- ----------------------------------------------------------
+CREATE TABLE `bookings` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `booking_number` VARCHAR(30) NOT NULL,
+  `customer_id` BIGINT UNSIGNED NOT NULL,
+  `tour_package_id` INT UNSIGNED NOT NULL,
+  `travel_date` DATE NOT NULL,
+  `adults` INT UNSIGNED NOT NULL DEFAULT 1,
+  `children` INT UNSIGNED NOT NULL DEFAULT 0,
+  `infants` INT UNSIGNED NOT NULL DEFAULT 0,
+  `adult_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `child_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `subtotal` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `discount_type` ENUM('none', 'percentage', 'fixed') NOT NULL DEFAULT 'none',
+  `discount_value` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `discount_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `total_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `paid_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `due_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `booking_status` ENUM('pending', 'confirmed', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+  `payment_status` ENUM('unpaid', 'partial', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
+  `special_request` TEXT NULL DEFAULT NULL,
+  `notes` TEXT NULL DEFAULT NULL,
+  `created_by` INT UNSIGNED NULL DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `cancelled_at` TIMESTAMP NULL DEFAULT NULL,
+  `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_booking_number` (`booking_number`),
+  INDEX `idx_bookings_customer` (`customer_id`),
+  INDEX `idx_bookings_tour_package` (`tour_package_id`),
+  INDEX `idx_bookings_travel_date` (`travel_date`),
+  INDEX `idx_bookings_status` (`booking_status`),
+  INDEX `idx_bookings_payment_status` (`payment_status`),
+  INDEX `idx_bookings_created_at` (`created_at`),
+  INDEX `idx_bookings_deleted_at` (`deleted_at`),
+  CONSTRAINT `fk_bookings_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_bookings_tour_package` FOREIGN KEY (`tour_package_id`) REFERENCES `tour_packages` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_bookings_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -274,25 +318,34 @@ INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (22, 'Create Customers', 'customers.create', 'Add and register new customers'),
 (23, 'Edit Customers', 'customers.edit', 'Update existing customer profiles'),
 (24, 'Delete Customers', 'customers.delete', 'Soft delete customer profiles'),
-(25, 'Restore Customers', 'customers.restore', 'Restore soft-deleted customer profiles');
+(25, 'Restore Customers', 'customers.restore', 'Restore soft-deleted customer profiles'),
+(26, 'View Bookings', 'bookings.view', 'Can view booking list and reservation vouchers'),
+(27, 'Create Bookings', 'bookings.create', 'Can create and process new tour bookings'),
+(28, 'Edit Bookings', 'bookings.edit', 'Can modify existing tour bookings'),
+(29, 'Cancel Bookings', 'bookings.cancel', 'Can cancel tour reservations'),
+(30, 'Confirm Bookings', 'bookings.confirm', 'Can confirm pending tour reservations'),
+(31, 'Complete Bookings', 'bookings.complete', 'Can mark confirmed bookings as completed');
 
--- Assign Permissions to Administrator (All permissions 1-25)
+-- Assign Permissions to Administrator (All permissions 1-31)
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
 (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
-(1, 21), (1, 22), (1, 23), (1, 24), (1, 25);
+(1, 21), (1, 22), (1, 23), (1, 24), (1, 25),
+(1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31);
 
 -- Assign Permissions to Manager
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5),
 (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 17), (2, 18), (2, 19),
-(2, 21), (2, 22), (2, 23), (2, 24);
+(2, 21), (2, 22), (2, 23), (2, 24),
+(2, 26), (2, 27), (2, 28), (2, 29), (2, 30), (2, 31);
 
 -- Assign Permissions to Staff
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (3, 1), (3, 2), (3, 3), (3, 4),
 (3, 9), (3, 13), (3, 17),
-(3, 21), (3, 22);
+(3, 21), (3, 22),
+(3, 26), (3, 27);
 
 -- Seed Default Administrator
 -- Default credentials: admin@example.com / Admin@12345
@@ -416,4 +469,35 @@ INSERT INTO `customers` (
   'male', '1988-11-03', 'GEC Circle, Nasirabad', 'Chittagong', 'Chittagong Division', 'Bangladesh', '4000',
   NULL, NULL, '19881122334455667', NULL, 'Frequent domestic trekker.', 'active', NOW(), NOW()
 );
+
+-- Seed Sample Bookings (Phase 04)
+INSERT INTO `bookings` (
+  `id`, `booking_number`, `customer_id`, `tour_package_id`, `travel_date`,
+  `adults`, `children`, `infants`, `adult_price`, `child_price`, `subtotal`,
+  `discount_type`, `discount_value`, `discount_amount`, `total_amount`,
+  `paid_amount`, `due_amount`, `booking_status`, `payment_status`,
+  `special_request`, `notes`, `created_by`, `created_at`, `updated_at`
+) VALUES
+(
+  1, 'BK-2026-00001', 1, 1, DATE_ADD(CURRENT_DATE(), INTERVAL 14 DAY),
+  2, 1, 0, 12500.00, 7500.00, 32500.00,
+  'fixed', 1000.00, 1000.00, 31500.00,
+  0.00, 31500.00, 'confirmed', 'unpaid',
+  'Sea view double room requested.', 'VIP client. Confirmed via phone booking.', 1, NOW(), NOW()
+),
+(
+  2, 'BK-2026-00002', 2, 2, DATE_ADD(CURRENT_DATE(), INTERVAL 21 DAY),
+  2, 0, 0, 8500.00, 5000.00, 17000.00,
+  'percentage', 10.00, 1700.00, 15300.00,
+  0.00, 15300.00, 'pending', 'unpaid',
+  'Couple friendly cottage required.', 'Awaiting deposit verification.', 1, NOW(), NOW()
+),
+(
+  3, 'BK-2026-00003', 3, 3, DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY),
+  1, 0, 0, 6500.00, 4000.00, 6500.00,
+  'none', 0.00, 0.00, 6500.00,
+  0.00, 6500.00, 'completed', 'unpaid',
+  'Window seat on train.', 'Tour completed successfully.', 1, NOW(), NOW()
+);
+
 

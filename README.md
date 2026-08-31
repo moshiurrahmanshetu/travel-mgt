@@ -9,6 +9,7 @@ A Tour & Travel Booking Management System built with **PURE RAW PHP**, MySQL, PD
 - **Phase 01:** Project Foundation, Core Layout, Database Layer & Authentication Engine
 - **Phase 02:** Avatar Upload Engine Fix + Tour Package Management (Categories, Destinations, Packages, Gallery & Multi-Day Itineraries)
 - **Phase 03:** Customer Management (Profiles, Contact Info, Passports/NID, Photo Uploads, Safe Soft-Delete & Restore)
+- **Phase 04:** Booking Management System (Reservations, Dynamic Capacity Tracking, Price Snapshots, Status Transitions, Cancellations, and Customer History)
 
 > **Architecture Notice:** This is **NOT** a Laravel or MVC framework project. It uses a clean, maintainable, modular Raw PHP directory convention suitable for commercial PHP web applications.
 
@@ -54,11 +55,12 @@ travel-mgt/
 │   ├── 001_authentication.sql# Phase 01 authentication & role schema migration
 │   ├── 002_tour_management.sql # Phase 02 tour package management schema migration
 │   ├── 003_customer_management.sql # Phase 03 customer management schema migration
+│   ├── 004_booking_management.sql  # Phase 04 booking management schema migration
 │   └── database.sql          # Complete cumulative database creation and seed script
 │
 ├── includes/
 │   ├── auth_check.php        # Reusable authentication guard
-│   ├── functions.php         # Core reusable helper functions & image validator
+│   ├── functions.php         # Core reusable helper functions, pricing, & image validator
 │   ├── csrf.php              # CSRF token generation and validation
 │   ├── flash.php             # Flash notification alerts system
 │   ├── header.php            # Public HTML header
@@ -82,7 +84,7 @@ travel-mgt/
 │   │   ├── index.php         # Tour packages listing with search & filters
 │   │   ├── create.php        # Tour package creation form & dynamic itinerary builder
 │   │   ├── store.php         # Tour package store processor (transactional)
-│   │   ├── view.php          # Full tour package detail view & gallery
+│   │   ├── view.php          # Full tour package detail view, gallery & booking summary
 │   │   ├── edit.php          # Tour package editor
 │   │   ├── update.php        # Tour package update processor
 │   │   ├── delete.php        # Tour package soft-delete processor
@@ -100,11 +102,21 @@ travel-mgt/
 │   │   ├── index.php         # Customer directory, search, filter, and pagination
 │   │   ├── create.php        # Customer registration form with live photo preview
 │   │   ├── store.php         # Customer store processor with auto code generation (CUS-XXXXX)
-│   │   ├── view.php          # CRM-style customer profile & booking history placeholder
+│   │   ├── view.php          # CRM-style customer profile & live booking history
 │   │   ├── edit.php          # Customer profile editor
 │   │   ├── update.php        # Customer update processor with safe photo replacement
 │   │   ├── delete.php        # Customer soft-delete processor
 │   │   └── restore.php       # Soft-deleted customer restoration processor
+│   │
+│   ├── bookings/
+│   │   ├── index.php         # Booking directory, search, multi-filter, pagination, cancel modal
+│   │   ├── create.php        # Reservation creation form with live Vanilla JS pricing engine
+│   │   ├── store.php         # Transactional booking store processor with capacity validation
+│   │   ├── view.php          # CRM-style booking detail voucher with pricing snapshot & status controls
+│   │   ├── edit.php          # Reservation edit form with price snapshot recalculation
+│   │   ├── update.php        # Reservation update processor with capacity re-verification
+│   │   ├── cancel.php        # POST cancellation processor releasing capacity
+│   │   └── status-update.php # Status transition processor (confirm/complete) with capacity checks
 │   │
 │   ├── users/
 │   │   └── index.php         # Users & Roles foundation overview
@@ -165,28 +177,31 @@ Get-Content c:\xampp\htdocs\travel-mgt\database\database.sql | & "C:\xampp\mysql
 
 ---
 
-## 🛡️ Security Features Implemented
+## 🛡️ Security & Architecture Rules
 
-1. **Prepared Statements (PDO):** All database interactions use parameterized queries to eliminate SQL Injection risks.
-2. **Bcrypt Password Hashing:** Passwords are hashed and verified using PHP's native `password_hash()` and `password_verify()` with default bcrypt cost. Plaintext passwords are never stored.
-3. **CSRF Protection:** Synchronizer token pattern with `hash_equals()` validation on all state-changing POST forms.
-4. **Session Hardening:** Session IDs are regenerated via `session_regenerate_id(true)` upon successful authentication. Session cookies use `HttpOnly`, `SameSite=Lax`, and secure flags.
-5. **Generic Reusable Image Validation:** Centralized `validate_uploaded_image()` helper enforcing `is_uploaded_file()`, `getimagesize()` binary checks, MIME allowlisting (`image/jpeg`, `image/pjpeg`, `image/png`, `image/x-png`, `image/webp`), size enforcement, safe randomized filename generation, and safe post-update unlinking of old files.
-6. **Soft Deletion & Foreign Key Safety:** Customers, tour packages, categories, and destinations use soft deletes (`deleted_at`). Customer primary keys are permanent InnoDB integers ready for foreign key bindings in Phase 04 Bookings.
-7. **Role-Based Access Control (RBAC):** Server-side permission guards (`require_permission()`) on all Customer, Tour, Category, and Destination actions.
+1. **Authoritative Server-Side Pricing Engine:** All pricing calculations, subtotal additions, discount applications, and net totals are computed server-side. Hidden or client-submitted price fields are never trusted.
+2. **Price Snapshot Preservation:** Adult and child prices are snapshotted into the `bookings` table at reservation time. Subsequent price changes on the tour package do not alter existing booking records.
+3. **Capacity & Double-Booking Prevention:** Confirmed bookings (`booking_status = 'confirmed'`) consume package capacity (`adults + children + infants`). Capacity is checked upon creation and re-checked upon confirmation. Cancelled bookings release capacity immediately.
+4. **Relational Data Integrity:** Foreign keys use `ON DELETE RESTRICT ON UPDATE CASCADE` to prevent accidental deletion of referenced customers or tour packages. Primary keys use stable `BIGINT UNSIGNED` IDs ready for future Phase 05 `payments` foreign keys.
+5. **CSRF & RBAC:** All state-changing POST requests require valid CSRF tokens and server-side permission verification (`bookings.view`, `bookings.create`, `bookings.edit`, `bookings.cancel`, `bookings.confirm`, `bookings.complete`).
 
 ---
 
 ## 🧭 Navigation & Module Status
 
-- **Dashboard:** Operational with live counts (`modules/dashboard/index.php`)
+- **Dashboard:** Operational with live metrics and recent items (`modules/dashboard/index.php`)
 - **Tour Packages:** Operational (`modules/tours/index.php`)
 - **Tour Categories:** Operational (`modules/tours/categories.php`)
 - **Tour Destinations:** Operational (`modules/tours/destinations.php`)
 - **Customers:** Operational (`modules/customers/index.php`)
+- **Bookings:** Operational (`modules/bookings/index.php`)
+  - All Bookings (`modules/bookings/index.php`)
+  - Pending Bookings (`modules/bookings/index.php?status=pending`)
+  - Confirmed Bookings (`modules/bookings/index.php?status=confirmed`)
+  - Cancelled Bookings (`modules/bookings/index.php?status=cancelled`)
 - **My Profile:** Operational (`modules/profile/index.php`)
 - **Avatar Upload:** Operational (`modules/profile/upload-avatar.php`)
 - **Change Password:** Operational (`modules/profile/change-password.php`)
 - **Users & Roles Foundation:** Operational (`modules/users/index.php`)
 - **Settings Foundation:** Operational (`modules/settings/index.php`)
-- **Future Modules (Phases 04–06):** Bookings, Payments, Reports are marked as *Coming Soon* in the navigation.
+- **Future Modules (Phases 05–06):** Payments, Reports are marked as *Coming Soon* in the navigation.

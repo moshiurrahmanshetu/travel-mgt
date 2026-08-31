@@ -32,6 +32,23 @@ try {
         set_flash('error', 'Customer does not exist.');
         redirect('modules/customers/index.php');
     }
+
+    // Fetch Customer Bookings (Phase 04 Integration)
+    $bookingStmt = $pdo->prepare("
+        SELECT 
+            b.*, 
+            p.name AS package_name, 
+            p.package_code, 
+            d.name AS destination_name
+        FROM bookings b
+        JOIN tour_packages p ON b.tour_package_id = p.id
+        LEFT JOIN tour_destinations d ON p.destination_id = d.id
+        WHERE b.customer_id = :cus_id AND b.deleted_at IS NULL
+        ORDER BY b.id DESC
+    ");
+    $bookingStmt->execute(['cus_id' => $id]);
+    $customerBookings = $bookingStmt->fetchAll();
+
 } catch (PDOException $e) {
     error_log('Customer View Error: ' . $e->getMessage());
     set_flash('error', 'Failed to load customer profile.');
@@ -274,20 +291,93 @@ require_once __DIR__ . '/../../includes/admin_sidebar.php';
                     </div>
                 <?php endif; ?>
 
-                <!-- Booking History (Phase 04 Placeholder) -->
+                <!-- Customer Booking History (Phase 04 Integration) -->
                 <div class="admin-card mb-4">
                     <div class="admin-card-header d-flex justify-content-between align-items-center">
                         <h4 class="admin-card-title">
-                            <i class="bi bi-calendar-check me-2 text-primary"></i> Booking History
+                            <i class="bi bi-calendar-check me-2 text-primary"></i> Customer Booking History
                         </h4>
-                        <span class="badge bg-secondary">0 Bookings</span>
-                    </div>
-                    <div class="admin-card-body text-center py-4">
-                        <div class="text-muted">
-                            <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
-                            <h5 class="fs-6 fw-bold text-dark mb-1">No bookings found for this customer.</h5>
-                            <p class="small text-muted mb-0">Booking history will appear here once tour bookings are created in Phase 04.</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary"><?= count($customerBookings); ?> Bookings</span>
+                            <?php if (has_permission('bookings.create') && !$isDeleted): ?>
+                                <a href="<?= url('modules/bookings/create.php?customer_id=' . $customer['id']); ?>" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus-circle me-1"></i> New Booking
+                                </a>
+                            <?php endif; ?>
                         </div>
+                    </div>
+                    <div class="admin-card-body p-0">
+                        <?php if (!empty($customerBookings)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">Booking #</th>
+                                            <th>Tour Package</th>
+                                            <th>Travel Date</th>
+                                            <th class="text-center">Pax</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th class="pe-3 text-end">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($customerBookings as $cb): 
+                                            $cbPax = (int)$cb['adults'] + (int)$cb['children'] + (int)$cb['infants'];
+
+                                            $cbStatusClass = 'bg-secondary';
+                                            if ($cb['booking_status'] === 'pending') $cbStatusClass = 'bg-warning text-dark';
+                                            elseif ($cb['booking_status'] === 'confirmed') $cbStatusClass = 'bg-primary';
+                                            elseif ($cb['booking_status'] === 'completed') $cbStatusClass = 'bg-success';
+                                            elseif ($cb['booking_status'] === 'cancelled') $cbStatusClass = 'bg-danger';
+                                        ?>
+                                            <tr>
+                                                <td class="ps-3">
+                                                    <a href="<?= url('modules/bookings/view.php?id=' . $cb['id']); ?>" class="fw-bold text-decoration-none">
+                                                        <code><?= e($cb['booking_number']); ?></code>
+                                                    </a>
+                                                    <div class="text-muted" style="font-size: 0.7rem;"><?= format_date($cb['created_at'], 'M d, Y'); ?></div>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-semibold text-dark"><?= e($cb['package_name']); ?></div>
+                                                    <span class="badge bg-light text-muted border" style="font-size: 0.65rem;"><?= e($cb['destination_name'] ?? '—'); ?></span>
+                                                </td>
+                                                <td>
+                                                    <span class="text-dark small fw-semibold"><?= format_date($cb['travel_date'], 'M d, Y'); ?></span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-dark border"><?= $cbPax; ?> Pax</span>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold text-dark small"><?= format_currency($cb['total_amount']); ?></div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <?= $cbStatusClass; ?>" style="font-size: 0.7rem;">
+                                                        <?= ucfirst(e($cb['booking_status'])); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="pe-3 text-end">
+                                                    <a href="<?= url('modules/bookings/view.php?id=' . $cb['id']); ?>" class="btn btn-outline-secondary btn-sm p-1 px-2" title="View Reservation Details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+                                <h5 class="fs-6 fw-bold text-dark mb-1">No reservations found for this customer.</h5>
+                                <p class="small text-muted mb-3">Create a new tour booking reservation for this client.</p>
+                                <?php if (has_permission('bookings.create') && !$isDeleted): ?>
+                                    <a href="<?= url('modules/bookings/create.php?customer_id=' . $customer['id']); ?>" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-calendar-plus me-1"></i> Create Booking
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

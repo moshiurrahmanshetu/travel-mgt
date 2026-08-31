@@ -637,3 +637,179 @@ function validate_uploaded_image(array $file, string $destinationDir, string $fi
     ];
 }
 
+/**
+ * Generate a unique booking number in the format BK-YYYY-XXXXX
+ * 
+ * @return string
+ */
+function generate_booking_number(): string
+{
+    $pdo = get_db_connection();
+    $currentYear = date('Y');
+    
+    // Find highest ID in bookings
+    $maxIdStmt = $pdo->query("SELECT MAX(id) FROM bookings");
+    $nextId = (int)$maxIdStmt->fetchColumn() + 1;
+    $bookingNumber = sprintf('BK-%s-%05d', $currentYear, $nextId);
+
+    // Verify collision safety
+    $checkStmt = $pdo->prepare("SELECT id FROM bookings WHERE booking_number = :code LIMIT 1");
+    $checkStmt->execute(['code' => $bookingNumber]);
+    if ($checkStmt->fetch()) {
+        $bookingNumber = sprintf('BK-%s-%05d-%s', $currentYear, $nextId, bin2hex(random_bytes(2)));
+    }
+
+    return $bookingNumber;
+}
+
+/**
+ * Calculate authoritative booking pricing breakdown server-side
+ * 
+ * @param int $adults
+ * @param float|int $adultPrice
+ * @param int $children
+ * @param float|int $childPrice
+ * @param string $discountType ('none', 'percentage', 'fixed')
+ * @param float|int $discountValue
+ * @param float|int $paidAmount
+ * @return array
+ */
+function calculate_booking_pricing($adults, $adultPrice, $children = 0, $childPrice = 0, string $discountType = 'none', $discountValue = 0, $paidAmount = 0): array
+{
+    $adultCount = max(1, (int)$adults);
+    $childCount = max(0, (int)$children);
+    $priceAdult = max(0.0, (float)$adultPrice);
+    $priceChild = max(0.0, (float)$childPrice);
+    $discVal    = max(0.0, (float)$discountValue);
+    $paid       = max(0.0, (float)$paidAmount);
+
+    $adultSubtotal = round($adultCount * $priceAdult, 2);
+    $childSubtotal = round($childCount * $priceChild, 2);
+    $subtotal      = round($adultSubtotal + $childSubtotal, 2);
+
+    $discountAmount = 0.0;
+    if ($discountType === 'percentage' && $discVal > 0) {
+        $discountAmount = round(($subtotal * $discVal) / 100, 2);
+    } elseif ($discountType === 'fixed' && $discVal > 0) {
+        $discountAmount = round($discVal, 2);
+    }
+
+    // Never allow discount to exceed subtotal
+    $discountAmount = min($subtotal, $discountAmount);
+    $totalAmount    = max(0.0, round($subtotal - $discountAmount, 2));
+    $dueAmount      = max(0.0, round($totalAmount - $paid, 2));
+
+    return [
+        'adults'          => $adultCount,
+        'adult_price'     => $priceAdult,
+        'adult_subtotal'  => $adultSubtotal,
+        'children'        => $childCount,
+        'child_price'     => $priceChild,
+        'child_subtotal'  => $childSubtotal,
+        'subtotal'        => $subtotal,
+        'discount_type'   => in_array($discountType, ['none', 'percentage', 'fixed'], true) ? $discountType : 'none',
+        'discount_value'  => $discVal,
+        'discount_amount' => $discountAmount,
+        'total_amount'    => $totalAmount,
+        'paid_amount'     => $paid,
+        'due_amount'      => $dueAmount
+    ];
+}
+
+/**
+ * Get total confirmed travellers (adults + children + infants) for a tour package
+ * 
+ * @param int $tourPackageId
+ * @param int|null $excludeBookingId
+ * @return int
+ */
+function get_tour_confirmed_travellers(int $tourPackageId, ?int $excludeBookingId = null): int
+{
+    try {
+        $pdo = get_db_connection();
+        $sql = "
+            SELECT COALESCE(SUM(adults + children + infants), 0) AS total_travellers
+            FROM bookings
+            WHERE tour_package_id = :pkg_id 
+              AND booking_status = 'confirmed' 
+              AND deleted_at IS NULL
+        ";
+        $params = ['pkg_id' => $tourPackageId];
+
+        if ($excludeBookingId !== null && $excludeBookingId > 0) {
+            $sql .= " AND id != :exclude_id";
+            $params['exclude_id'] = $excludeBookingId;
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('get_tour_confirmed_travellers error: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Check whether a tour package has sufficient capacity for requested travellers
+ * 
+ * @param int $tourPackageId
+ * @param int $requestedTravellers
+ * @param int|null $excludeBookingId
+ * @return array ['has_capacity' => bool, 'capacity' => int, 'confirmed' => int, 'remaining' => int, 'requested' => int]
+ */
+function check_tour_capacity(int $tourPackageId, int $requestedTravellers, ?int $excludeBookingId = null): array
+{
+    try {
+        $pdo = get_db_connection();
+        $stmt = $pdo->prepare("SELECT available_seats FROM tour_packages WHERE id = :id AND deleted_at IS NULL LIMIT 1");
+        $stmt->execute(['id' => $tourPackageId]);
+        $capacity = (int)$stmt->fetchColumn();
+
+        $confirmed = get_tour_confirmed_travellers($tourPackageId, $excludeBookingId);
+        $remaining = max(0, $capacity - $confirmed);
+        $req = max(1, $requestedTravellers);
+
+        return [
+            'has_capacity' => ($req <= $remaining),
+            'capacity'     => $capacity,
+            'confirmed'    => $confirmed,
+            'remaining'    => $remaining,
+            'requested'    => $req
+        ];
+    } catch (PDOException $e) {
+        error_log('check_tour_capacity error: ' . $e->getMessage());
+        return [
+            'has_capacity' => false,
+            'capacity'     => 0,
+            'confirmed'    => 0,
+            'remaining'    => 0,
+            'requested'    => $requestedTravellers
+        ];
+    }
+}
+
+/**
+ * Validate allowed booking status transitions
+ * 
+ * @param string $currentStatus
+ * @param string $newStatus
+ * @return bool
+ */
+function can_transition_booking_status(string $currentStatus, string $newStatus): bool
+{
+    if ($currentStatus === $newStatus) {
+        return true;
+    }
+
+    $allowedTransitions = [
+        'pending'   => ['confirmed', 'cancelled'],
+        'confirmed' => ['completed', 'cancelled'],
+        'completed' => [],
+        'cancelled' => []
+    ];
+
+    return isset($allowedTransitions[$currentStatus]) && in_array($newStatus, $allowedTransitions[$currentStatus], true);
+}
+
+

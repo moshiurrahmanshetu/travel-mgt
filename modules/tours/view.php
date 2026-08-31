@@ -58,6 +58,26 @@ try {
     $itinStmt->execute(['id' => $id]);
     $itineraries = $itinStmt->fetchAll();
 
+    // Fetch Tour Booking Stats (Phase 04 Integration)
+    $totalTourBookings = 0;
+    $confirmedTourBookings = 0;
+    $confirmedTravellers = get_tour_confirmed_travellers($id);
+    $remainingSeats = max(0, (int)$package['available_seats'] - $confirmedTravellers);
+
+    $bStatsStmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) AS total_bookings,
+            SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_bookings
+        FROM bookings 
+        WHERE tour_package_id = :id AND deleted_at IS NULL
+    ");
+    $bStatsStmt->execute(['id' => $id]);
+    $bStats = $bStatsStmt->fetch();
+    if ($bStats) {
+        $totalTourBookings = (int)$bStats['total_bookings'];
+        $confirmedTourBookings = (int)$bStats['confirmed_bookings'];
+    }
+
 } catch (PDOException $e) {
     error_log('Tour View Error: ' . $e->getMessage());
     set_flash('error', 'Failed to load tour package details.');
@@ -333,6 +353,45 @@ require_once __DIR__ . '/../../includes/admin_sidebar.php';
                             <strong class="small text-dark d-block mb-1">Meal Plan:</strong>
                             <p class="text-muted small mb-0"><?= !empty($package['meal_information']) ? nl2br(e($package['meal_information'])) : '—'; ?></p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Booking Summary Card (Phase 04 Integration) -->
+                <div class="admin-card mb-4">
+                    <div class="admin-card-header d-flex justify-content-between align-items-center">
+                        <h3 class="admin-card-title">
+                            <i class="bi bi-calendar-check me-2 text-primary"></i> Booking Summary
+                        </h3>
+                        <span class="badge bg-secondary"><?= $totalTourBookings; ?> Total</span>
+                    </div>
+                    <div class="admin-card-body p-3">
+                        <ul class="list-group list-group-flush small mb-3">
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Total Bookings:</span>
+                                <strong class="text-dark"><?= $totalTourBookings; ?></strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Confirmed Bookings:</span>
+                                <strong class="text-success"><?= $confirmedTourBookings; ?></strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Confirmed Travellers:</span>
+                                <strong class="text-primary"><?= $confirmedTravellers; ?> Pax</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Remaining Seats:</span>
+                                <strong class="<?= $remainingSeats > 0 ? 'text-success' : 'text-danger'; ?>">
+                                    <?= $remainingSeats; ?> / <?= (int)$package['available_seats']; ?>
+                                </strong>
+                            </li>
+                        </ul>
+                        <?php if (has_permission('bookings.create') && $package['status'] === 'active'): ?>
+                            <div class="d-grid">
+                                <a href="<?= url('modules/bookings/create.php?package_id=' . $package['id']); ?>" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-calendar-plus me-1"></i> Book This Tour
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

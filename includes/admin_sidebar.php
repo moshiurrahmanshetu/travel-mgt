@@ -13,6 +13,12 @@ $isTourPackages = strpos($currentScript, '/modules/tours/index.php') !== false |
 $isCategories = strpos($currentScript, '/modules/tours/categories.php') !== false;
 $isDestinations = strpos($currentScript, '/modules/tours/destinations.php') !== false;
 $isCustomers = strpos($currentScript, '/modules/customers/') !== false;
+$isBookings = strpos($currentScript, '/modules/bookings/') !== false;
+$statusParam = $_GET['status'] ?? '';
+$isBookingsAll = $isBookings && empty($statusParam) && (strpos($currentScript, 'create.php') === false && strpos($currentScript, 'edit.php') === false && strpos($currentScript, 'view.php') === false);
+$isBookingsPending = $isBookings && $statusParam === 'pending';
+$isBookingsConfirmed = $isBookings && $statusParam === 'confirmed';
+$isBookingsCancelled = $isBookings && $statusParam === 'cancelled';
 ?>
 <!-- Sidebar Navigation -->
 <aside id="admin-sidebar">
@@ -76,31 +82,27 @@ $isCustomers = strpos($currentScript, '/modules/customers/') !== false;
                 <span>Bookings</span>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 04">
+                <a href="<?= url('modules/bookings/index.php'); ?>" class="sidebar-nav-link <?= $isBookingsAll ? 'active' : ''; ?>">
                     <i class="bi bi-calendar-check nav-icon"></i>
                     <span class="nav-link-text">All Bookings</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 04">
+                <a href="<?= url('modules/bookings/index.php?status=pending'); ?>" class="sidebar-nav-link <?= $isBookingsPending ? 'active' : ''; ?>">
                     <i class="bi bi-clock-history nav-icon"></i>
                     <span class="nav-link-text">Pending</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 04">
+                <a href="<?= url('modules/bookings/index.php?status=confirmed'); ?>" class="sidebar-nav-link <?= $isBookingsConfirmed ? 'active' : ''; ?>">
                     <i class="bi bi-check2-circle nav-icon"></i>
                     <span class="nav-link-text">Confirmed</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 04">
+                <a href="<?= url('modules/bookings/index.php?status=cancelled'); ?>" class="sidebar-nav-link <?= $isBookingsCancelled ? 'active' : ''; ?>">
                     <i class="bi bi-x-circle nav-icon"></i>
                     <span class="nav-link-text">Cancelled</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
 
