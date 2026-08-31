@@ -812,4 +812,156 @@ function can_transition_booking_status(string $currentStatus, string $newStatus)
     return isset($allowedTransitions[$currentStatus]) && in_array($newStatus, $allowedTransitions[$currentStatus], true);
 }
 
+/**
+ * Generate a unique payment receipt number in the format PAY-YYYY-XXXXX
+ * 
+ * @return string
+ */
+function generate_payment_number(): string
+{
+    $pdo = get_db_connection();
+    $currentYear = date('Y');
+    
+    // Find highest ID in payments
+    $maxIdStmt = $pdo->query("SELECT MAX(id) FROM payments");
+    $nextId = (int)$maxIdStmt->fetchColumn() + 1;
+    $paymentNumber = sprintf('PAY-%s-%05d', $currentYear, $nextId);
+
+    // Verify collision safety
+    $checkStmt = $pdo->prepare("SELECT id FROM payments WHERE payment_number = :code LIMIT 1");
+    $checkStmt->execute(['code' => $paymentNumber]);
+    if ($checkStmt->fetch()) {
+        $paymentNumber = sprintf('PAY-%s-%05d-%s', $currentYear, $nextId, bin2hex(random_bytes(2)));
+    }
+
+    return $paymentNumber;
+}
+
+/**
+ * Authoritatively recalculate and synchronize booking payment summary
+ * 
+ * @param int $bookingId
+ * @return array ['total_amount', 'paid_amount', 'due_amount', 'payment_status']
+ */
+function recalculate_booking_payment_summary(int $bookingId): array
+{
+    try {
+        $pdo = get_db_connection();
+
+        // 1. Fetch Booking Total Amount
+        $stmtBk = $pdo->prepare("SELECT total_amount FROM bookings WHERE id = :id AND deleted_at IS NULL LIMIT 1");
+        $stmtBk->execute(['id' => $bookingId]);
+        $bookingTotal = (float)$stmtBk->fetchColumn();
+
+        // 2. Sum only completed and non-deleted payments
+        $stmtPay = $pdo->prepare("
+            SELECT COALESCE(SUM(amount), 0) AS total_paid
+            FROM payments
+            WHERE booking_id = :booking_id
+              AND payment_status = 'completed'
+              AND deleted_at IS NULL
+        ");
+        $stmtPay->execute(['booking_id' => $bookingId]);
+        $paidAmount = round((float)$stmtPay->fetchColumn(), 2);
+
+        // 3. Compute Due & Booking-Level Payment Status
+        $dueAmount = max(0.0, round($bookingTotal - $paidAmount, 2));
+
+        $paymentStatus = 'unpaid';
+        if ($paidAmount <= 0.0) {
+            $paymentStatus = 'unpaid';
+        } elseif ($paidAmount < $bookingTotal) {
+            $paymentStatus = 'partial';
+        } else {
+            $paymentStatus = 'paid';
+        }
+
+        // 4. Synchronize Booking Record
+        $updateStmt = $pdo->prepare("
+            UPDATE bookings 
+            SET 
+                `paid_amount`    = :paid,
+                `due_amount`     = :due,
+                `payment_status` = :status,
+                `updated_at`     = NOW()
+            WHERE `id` = :id
+        ");
+        $updateStmt->execute([
+            'paid'   => $paidAmount,
+            'due'    => $dueAmount,
+            'status' => $paymentStatus,
+            'id'     => $bookingId
+        ]);
+
+        return [
+            'total_amount'   => $bookingTotal,
+            'paid_amount'    => $paidAmount,
+            'due_amount'     => $dueAmount,
+            'payment_status' => $paymentStatus
+        ];
+
+    } catch (PDOException $e) {
+        error_log('recalculate_booking_payment_summary error: ' . $e->getMessage());
+        return [
+            'total_amount'   => 0.0,
+            'paid_amount'    => 0.0,
+            'due_amount'     => 0.0,
+            'payment_status' => 'unpaid'
+        ];
+    }
+}
+
+/**
+ * Get live payment summary breakdown for a booking
+ * 
+ * @param int $bookingId
+ * @return array
+ */
+function get_booking_payment_summary(int $bookingId): array
+{
+    try {
+        $pdo = get_db_connection();
+
+        $stmtBk = $pdo->prepare("SELECT total_amount, paid_amount, due_amount, payment_status FROM bookings WHERE id = :id AND deleted_at IS NULL LIMIT 1");
+        $stmtBk->execute(['id' => $bookingId]);
+        $bk = $stmtBk->fetch();
+
+        if (!$bk) {
+            return ['total_amount' => 0.0, 'paid_amount' => 0.0, 'due_amount' => 0.0, 'payment_status' => 'unpaid'];
+        }
+
+        $stmtPay = $pdo->prepare("
+            SELECT COALESCE(SUM(amount), 0) AS total_paid
+            FROM payments
+            WHERE booking_id = :booking_id
+              AND payment_status = 'completed'
+              AND deleted_at IS NULL
+        ");
+        $stmtPay->execute(['booking_id' => $bookingId]);
+        $paidAmount = round((float)$stmtPay->fetchColumn(), 2);
+        $totalAmount = (float)$bk['total_amount'];
+        $dueAmount = max(0.0, round($totalAmount - $paidAmount, 2));
+
+        $paymentStatus = 'unpaid';
+        if ($paidAmount <= 0.0) {
+            $paymentStatus = 'unpaid';
+        } elseif ($paidAmount < $totalAmount) {
+            $paymentStatus = 'partial';
+        } else {
+            $paymentStatus = 'paid';
+        }
+
+        return [
+            'total_amount'   => $totalAmount,
+            'paid_amount'    => $paidAmount,
+            'due_amount'     => $dueAmount,
+            'payment_status' => $paymentStatus
+        ];
+    } catch (PDOException $e) {
+        error_log('get_booking_payment_summary error: ' . $e->getMessage());
+        return ['total_amount' => 0.0, 'paid_amount' => 0.0, 'due_amount' => 0.0, 'payment_status' => 'unpaid'];
+    }
+}
+
+
 

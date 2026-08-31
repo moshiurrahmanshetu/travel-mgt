@@ -77,6 +77,16 @@ try {
     ");
     $recentBookings = $stmtRecentBk->fetchAll();
 
+    // Financial Metrics (Phase 05)
+    $stmtCol = $pdo->query("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_status = 'completed' AND deleted_at IS NULL");
+    $totalCollected = (float)$stmtCol->fetchColumn();
+
+    $stmtOut = $pdo->query("SELECT COALESCE(SUM(due_amount), 0) FROM bookings WHERE deleted_at IS NULL AND booking_status != 'cancelled'");
+    $totalOutstanding = (float)$stmtOut->fetchColumn();
+
+    $stmtToday = $pdo->query("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_status = 'completed' AND payment_date = CURRENT_DATE() AND deleted_at IS NULL");
+    $paymentsToday = (float)$stmtToday->fetchColumn();
+
 } catch (PDOException $e) {
     error_log('Dashboard stats error: ' . $e->getMessage());
 }
@@ -322,8 +332,37 @@ try {
                 </div>
             </div>
 
-            <!-- Right Column: Account Quick Summary -->
+            <!-- Right Column: Financial Overview & Account Quick Summary -->
             <div class="col-12 col-lg-4">
+                <!-- Financial Overview Card (Phase 05 Integration) -->
+                <div class="admin-card mb-4">
+                    <div class="admin-card-header d-flex justify-content-between align-items-center">
+                        <h3 class="admin-card-title">
+                            <i class="bi bi-wallet2 me-2 text-primary"></i> Collections & Revenue
+                        </h3>
+                        <a href="<?= url('modules/payments/index.php'); ?>" class="btn btn-outline-secondary btn-sm">
+                            Payments
+                        </a>
+                    </div>
+                    <div class="admin-card-body p-3">
+                        <div class="p-3 bg-light rounded border mb-3">
+                            <span class="text-muted small d-block mb-1">Total Revenue Collected:</span>
+                            <h4 class="fs-4 fw-bold text-success mb-0"><?= format_currency($totalCollected); ?></h4>
+                        </div>
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Total Outstanding Due:</span>
+                                <strong class="<?= $totalOutstanding > 0 ? 'text-danger' : 'text-success'; ?>"><?= format_currency($totalOutstanding); ?></strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Collected Today:</span>
+                                <strong class="text-primary"><?= format_currency($paymentsToday); ?></strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Account Summary Card -->
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <h3 class="admin-card-title">

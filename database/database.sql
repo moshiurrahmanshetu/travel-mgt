@@ -279,6 +279,35 @@ CREATE TABLE `bookings` (
   CONSTRAINT `fk_bookings_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 12. Table: payments
+-- ----------------------------------------------------------
+CREATE TABLE `payments` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `payment_number` VARCHAR(30) NOT NULL,
+  `booking_id` BIGINT UNSIGNED NOT NULL,
+  `payment_date` DATE NOT NULL,
+  `amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `payment_method` ENUM('cash', 'bank_transfer', 'card', 'mobile_banking', 'other') NOT NULL DEFAULT 'cash',
+  `transaction_id` VARCHAR(100) NULL DEFAULT NULL,
+  `payment_status` ENUM('completed', 'pending', 'failed', 'refunded') NOT NULL DEFAULT 'completed',
+  `notes` TEXT NULL DEFAULT NULL,
+  `created_by` INT UNSIGNED NULL DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_payment_number` (`payment_number`),
+  INDEX `idx_payments_booking` (`booking_id`),
+  INDEX `idx_payments_date` (`payment_date`),
+  INDEX `idx_payments_method` (`payment_method`),
+  INDEX `idx_payments_status` (`payment_status`),
+  INDEX `idx_payments_created_at` (`created_at`),
+  INDEX `idx_payments_deleted_at` (`deleted_at`),
+  CONSTRAINT `fk_payments_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_payments_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -324,28 +353,35 @@ INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (28, 'Edit Bookings', 'bookings.edit', 'Can modify existing tour bookings'),
 (29, 'Cancel Bookings', 'bookings.cancel', 'Can cancel tour reservations'),
 (30, 'Confirm Bookings', 'bookings.confirm', 'Can confirm pending tour reservations'),
-(31, 'Complete Bookings', 'bookings.complete', 'Can mark confirmed bookings as completed');
+(31, 'Complete Bookings', 'bookings.complete', 'Can mark confirmed bookings as completed'),
+(32, 'View Payments', 'payments.view', 'Can view payment transactions and receipts'),
+(33, 'Create Payments', 'payments.create', 'Can record new customer payments'),
+(34, 'Edit Payments', 'payments.edit', 'Can modify payment transaction records'),
+(35, 'Delete Payments', 'payments.delete', 'Can soft-delete payment transactions');
 
--- Assign Permissions to Administrator (All permissions 1-31)
+-- Assign Permissions to Administrator (All permissions 1-35)
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
 (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
 (1, 21), (1, 22), (1, 23), (1, 24), (1, 25),
-(1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31);
+(1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31),
+(1, 32), (1, 33), (1, 34), (1, 35);
 
 -- Assign Permissions to Manager
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5),
 (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 17), (2, 18), (2, 19),
 (2, 21), (2, 22), (2, 23), (2, 24),
-(2, 26), (2, 27), (2, 28), (2, 29), (2, 30), (2, 31);
+(2, 26), (2, 27), (2, 28), (2, 29), (2, 30), (2, 31),
+(2, 32), (2, 33), (2, 34), (2, 35);
 
 -- Assign Permissions to Staff
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (3, 1), (3, 2), (3, 3), (3, 4),
 (3, 9), (3, 13), (3, 17),
 (3, 21), (3, 22),
-(3, 26), (3, 27);
+(3, 26), (3, 27),
+(3, 32), (3, 33);
 
 -- Seed Default Administrator
 -- Default credentials: admin@example.com / Admin@12345
@@ -482,7 +518,7 @@ INSERT INTO `bookings` (
   1, 'BK-2026-00001', 1, 1, DATE_ADD(CURRENT_DATE(), INTERVAL 14 DAY),
   2, 1, 0, 12500.00, 7500.00, 32500.00,
   'fixed', 1000.00, 1000.00, 31500.00,
-  0.00, 31500.00, 'confirmed', 'unpaid',
+  15000.00, 16500.00, 'confirmed', 'partial',
   'Sea view double room requested.', 'VIP client. Confirmed via phone booking.', 1, NOW(), NOW()
 ),
 (
@@ -496,8 +532,26 @@ INSERT INTO `bookings` (
   3, 'BK-2026-00003', 3, 3, DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY),
   1, 0, 0, 6500.00, 4000.00, 6500.00,
   'none', 0.00, 0.00, 6500.00,
-  0.00, 6500.00, 'completed', 'unpaid',
+  6500.00, 0.00, 'completed', 'paid',
   'Window seat on train.', 'Tour completed successfully.', 1, NOW(), NOW()
 );
+
+-- Seed Sample Payments (Phase 05)
+INSERT INTO `payments` (
+  `id`, `payment_number`, `booking_id`, `payment_date`,
+  `amount`, `payment_method`, `transaction_id`, `payment_status`,
+  `notes`, `created_by`, `created_at`, `updated_at`
+) VALUES
+(
+  1, 'PAY-2026-00001', 1, CURRENT_DATE(),
+  15000.00, 'bank_transfer', 'TRX-CITY-889922', 'completed',
+  'Initial 50% deposit received via City Bank transfer.', 1, NOW(), NOW()
+),
+(
+  2, 'PAY-2026-00002', 3, DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY),
+  6500.00, 'cash', NULL, 'completed',
+  'Full payment received in cash at office counter.', 1, NOW(), NOW()
+);
+
 
 

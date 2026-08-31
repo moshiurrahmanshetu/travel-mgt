@@ -19,6 +19,7 @@ $isBookingsAll = $isBookings && empty($statusParam) && (strpos($currentScript, '
 $isBookingsPending = $isBookings && $statusParam === 'pending';
 $isBookingsConfirmed = $isBookings && $statusParam === 'confirmed';
 $isBookingsCancelled = $isBookings && $statusParam === 'cancelled';
+$isPayments = strpos($currentScript, '/modules/payments/') !== false;
 ?>
 <!-- Sidebar Navigation -->
 <aside id="admin-sidebar">
@@ -111,10 +112,9 @@ $isBookingsCancelled = $isBookings && $statusParam === 'cancelled';
                 <span>Payments</span>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 05">
+                <a href="<?= url('modules/payments/index.php'); ?>" class="sidebar-nav-link <?= $isPayments ? 'active' : ''; ?>">
                     <i class="bi bi-credit-card nav-icon"></i>
                     <span class="nav-link-text">Payments</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
                 </a>
             </li>
 

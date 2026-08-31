@@ -16,6 +16,7 @@ $canEdit     = has_permission('bookings.edit');
 $canCancel   = has_permission('bookings.cancel');
 $canConfirm  = has_permission('bookings.confirm');
 $canComplete = has_permission('bookings.complete');
+$canCreatePayment = has_permission('payments.create');
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
@@ -25,6 +26,7 @@ if ($id <= 0) {
 
 $booking = null;
 $capacityInfo = null;
+$payments = [];
 
 try {
     $pdo = get_db_connection();
@@ -70,6 +72,17 @@ try {
         set_flash('error', 'Booking record not found.');
         redirect('modules/bookings/index.php');
     }
+
+    // Fetch Payment Transactions for this Booking
+    $stmtPay = $pdo->prepare("
+        SELECT p.*, u.name AS collector_name
+        FROM payments p
+        LEFT JOIN users u ON p.created_by = u.id
+        WHERE p.booking_id = :b_id AND p.deleted_at IS NULL
+        ORDER BY p.id DESC
+    ");
+    $stmtPay->execute(['b_id' => $id]);
+    $payments = $stmtPay->fetchAll();
 
     // Capacity Check for Tour Package
     $totalPax = (int)$booking['adults'] + (int)$booking['children'] + (int)$booking['infants'];
@@ -275,6 +288,81 @@ elseif ($booking['payment_status'] === 'refunded') $pStatusClass = 'bg-secondary
                         </div>
                     </div>
                 </div>
+
+                <!-- Payment History Card (Phase 05 Integration) -->
+                <div class="admin-card mt-4">
+                    <div class="admin-card-header d-flex justify-content-between align-items-center">
+                        <h3 class="admin-card-title">
+                            <i class="bi bi-credit-card me-2 text-primary"></i> Payment History
+                        </h3>
+                        <?php if ($canCreatePayment && $booking['booking_status'] !== 'cancelled' && (float)$booking['due_amount'] > 0): ?>
+                            <a href="<?= url('modules/payments/create.php?booking_id=' . $booking['id']); ?>" class="btn btn-sm btn-primary">
+                                <i class="bi bi-plus-lg me-1"></i> Add Payment
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                    <div class="admin-card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Payment #</th>
+                                        <th>Date</th>
+                                        <th>Method</th>
+                                        <th>Amount</th>
+                                        <th>Transaction ID</th>
+                                        <th>Status</th>
+                                        <th class="pe-3 text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($payments)): ?>
+                                        <?php foreach ($payments as $p): 
+                                            $pStatusClass = 'bg-secondary';
+                                            if ($p['payment_status'] === 'completed') $pStatusClass = 'bg-success';
+                                            elseif ($p['payment_status'] === 'pending') $pStatusClass = 'bg-warning text-dark';
+                                            elseif ($p['payment_status'] === 'failed') $pStatusClass = 'bg-danger';
+                                            elseif ($p['payment_status'] === 'refunded') $pStatusClass = 'bg-secondary';
+
+                                            $methodLabels = [
+                                                'cash'           => 'Cash',
+                                                'bank_transfer'  => 'Bank Transfer',
+                                                'card'           => 'Card',
+                                                'mobile_banking' => 'Mobile Banking',
+                                                'other'          => 'Other'
+                                            ];
+                                            $methodName = $methodLabels[$p['payment_method']] ?? ucfirst(str_replace('_', ' ', $p['payment_method']));
+                                        ?>
+                                            <tr>
+                                                <td class="ps-3">
+                                                    <a href="<?= url('modules/payments/view.php?id=' . $p['id']); ?>" class="fw-bold text-decoration-none">
+                                                        <code><?= e($p['payment_number']); ?></code>
+                                                    </a>
+                                                </td>
+                                                <td><span class="small text-dark"><?= format_date($p['payment_date'], 'M d, Y'); ?></span></td>
+                                                <td><span class="badge bg-light text-dark border"><?= e($methodName); ?></span></td>
+                                                <td><strong class="text-primary"><?= format_currency($p['amount']); ?></strong></td>
+                                                <td><span class="small text-muted"><?= !empty($p['transaction_id']) ? e($p['transaction_id']) : '—'; ?></span></td>
+                                                <td><span class="badge <?= $pStatusClass; ?>"><?= ucfirst(e($p['payment_status'])); ?></span></td>
+                                                <td class="pe-3 text-end">
+                                                    <a href="<?= url('modules/payments/view.php?id=' . $p['id']); ?>" class="btn btn-outline-secondary btn-sm p-1 px-2" title="View Receipt">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4 text-muted">
+                                                No payment transactions recorded for this reservation yet.
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Column: Financial Breakdown Voucher & Capacity -->
@@ -377,17 +465,20 @@ elseif ($booking['payment_status'] === 'refunded') $pStatusClass = 'bg-secondary
                         <!-- Payment Breakdown -->
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted small">Paid Amount:</span>
-                            <span class="fw-semibold text-dark"><?= format_currency($booking['paid_amount']); ?></span>
+                            <span class="fw-semibold text-success"><?= format_currency($booking['paid_amount']); ?></span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="text-muted small">Outstanding Due:</span>
-                            <span class="fw-bold text-danger"><?= format_currency($booking['due_amount']); ?></span>
+                            <span class="fw-bold <?= (float)$booking['due_amount'] > 0 ? 'text-danger' : 'text-success'; ?>"><?= format_currency($booking['due_amount']); ?></span>
                         </div>
 
-                        <div class="alert alert-info py-2 px-3 mb-0 small" role="alert">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Payment transactions will be managed from the Payment module in Phase 05.
-                        </div>
+                        <?php if ($canCreatePayment && $booking['booking_status'] !== 'cancelled' && (float)$booking['due_amount'] > 0): ?>
+                            <div class="d-grid gap-2">
+                                <a href="<?= url('modules/payments/create.php?booking_id=' . $booking['id']); ?>" class="btn btn-success btn-sm">
+                                    <i class="bi bi-credit-card me-1"></i> Record Payment
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

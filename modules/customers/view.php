@@ -87,6 +87,19 @@ if (!empty($customer['passport_expiry'])) {
     }
 }
 
+// Calculate Financial Totals
+$totalCustomerInvoiced = 0.0;
+$totalCustomerPaid     = 0.0;
+$totalCustomerDue      = 0.0;
+
+foreach ($customerBookings as $cb) {
+    if ($cb['booking_status'] !== 'cancelled') {
+        $totalCustomerInvoiced += (float)$cb['total_amount'];
+        $totalCustomerPaid     += (float)$cb['paid_amount'];
+        $totalCustomerDue      += (float)$cb['due_amount'];
+    }
+}
+
 require_once __DIR__ . '/../../includes/admin_header.php';
 require_once __DIR__ . '/../../includes/admin_sidebar.php';
 ?>
@@ -118,10 +131,12 @@ require_once __DIR__ . '/../../includes/admin_sidebar.php';
                 <a href="<?= url('modules/customers/index.php'); ?>" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i> Back to List
                 </a>
-                <?php if (!$isDeleted && $canEdit): ?>
-                    <a href="<?= url('modules/customers/edit.php?id=' . $customer['id']); ?>" class="btn btn-primary">
-                        <i class="bi bi-pencil me-1"></i> Edit Profile
-                    </a>
+                <?php if (!$isDeleted): ?>
+                    <?php if (has_permission('customers.edit')): ?>
+                        <a href="<?= url('modules/customers/edit.php?id=' . $customer['id']); ?>" class="btn btn-primary">
+                            <i class="bi bi-pencil me-1"></i> Edit Profile
+                        </a>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -129,14 +144,14 @@ require_once __DIR__ . '/../../includes/admin_sidebar.php';
         <div class="row g-4">
             <!-- Left Column: Profile Card & Quick Info (Col-4) -->
             <div class="col-12 col-lg-4">
-                <!-- Customer Hero Card -->
+                <!-- Profile Avatar & Key Stats Card -->
                 <div class="admin-card mb-4 text-center">
                     <div class="admin-card-body p-4">
                         <div class="mb-3">
                             <?php if ($avatarUrl): ?>
-                                <img src="<?= e($avatarUrl); ?>" alt="<?= e($customer['name']); ?>" class="rounded-circle border" style="width: 110px; height: 110px; object-fit: cover;">
+                                <img src="<?= e($avatarUrl); ?>" alt="<?= e($customer['name']); ?>" class="rounded-circle border p-1" style="width: 110px; height: 110px; object-fit: cover;">
                             <?php else: ?>
-                                <div class="rounded-circle bg-light text-primary border d-flex align-items-center justify-content-center fw-bold mx-auto" style="width: 110px; height: 110px; font-size: 2.25rem;">
+                                <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center fw-bold fs-2" style="width: 110px; height: 110px;">
                                     <?= e($initials); ?>
                                 </div>
                             <?php endif; ?>
@@ -186,6 +201,37 @@ require_once __DIR__ . '/../../includes/admin_sidebar.php';
                             <li class="list-group-item d-flex justify-content-between px-0 py-2">
                                 <span class="text-muted">Last Updated:</span>
                                 <span class="fw-semibold text-dark"><?= format_date($customer['updated_at']); ?></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Financial Summary Card (Phase 05 Integration) -->
+                <div class="admin-card mb-4">
+                    <div class="admin-card-header">
+                        <h4 class="admin-card-title">
+                            <i class="bi bi-wallet2 me-2 text-primary"></i> Payment Summary
+                        </h4>
+                    </div>
+                    <div class="admin-card-body">
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Total Reservations:</span>
+                                <span class="fw-semibold text-dark"><?= count($customerBookings); ?></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Total Invoiced:</span>
+                                <strong class="text-dark"><?= format_currency($totalCustomerInvoiced); ?></strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Total Collected:</span>
+                                <strong class="text-success"><?= format_currency($totalCustomerPaid); ?></strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                                <span class="text-muted">Total Due:</span>
+                                <strong class="<?= $totalCustomerDue > 0 ? 'text-danger' : 'text-success'; ?>">
+                                    <?= format_currency($totalCustomerDue); ?>
+                                </strong>
                             </li>
                         </ul>
                     </div>
