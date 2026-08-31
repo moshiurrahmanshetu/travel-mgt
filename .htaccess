@@ -9,8 +9,8 @@ Options -Indexes
 # Set default directory index
 DirectoryIndex index.php index.html
 
-# Protect sensitive database files and configuration backups
-<FilesMatch "\.(sql|log|ini|env|bak)$">
+# Protect sensitive database files, lock files, and configuration backups
+<FilesMatch "\.(sql|log|ini|env|bak|lock)$">
     Require all denied
 </FilesMatch>
 

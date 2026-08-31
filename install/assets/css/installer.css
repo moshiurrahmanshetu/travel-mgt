@@ -1,0 +1,190 @@
+/* ==========================================================
+   Commercial Installer Stylesheet
+   Tour & Travel Booking Management System
+   Solid, clean styling — NO GRADIENTS
+   ========================================================== */
+
+:root {
+    --inst-primary: #2563eb;
+    --inst-primary-hover: #1d4ed8;
+    --inst-bg: #f8fafc;
+    --inst-card-bg: #ffffff;
+    --inst-border: #e2e8f0;
+    --inst-text-main: #0f172a;
+    --inst-text-muted: #64748b;
+    --inst-success: #16a34a;
+    --inst-danger: #dc2626;
+}
+
+body.installer-body {
+    background-color: var(--inst-bg);
+    color: var(--inst-text-main);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 15px;
+    margin: 0;
+}
+
+.installer-container {
+    width: 100%;
+    max-width: 780px;
+    margin: auto;
+}
+
+.installer-card {
+    background-color: var(--inst-card-bg);
+    border: 1px solid var(--inst-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.installer-header {
+    background-color: #ffffff;
+    padding: 24px 30px 18px;
+    border-bottom: 1px solid var(--inst-border);
+    text-align: center;
+}
+
+.installer-header .installer-icon {
+    width: 48px;
+    height: 48px;
+    background-color: #eff6ff;
+    color: var(--inst-primary);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+
+.installer-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--inst-text-main);
+    margin-bottom: 4px;
+}
+
+.installer-subtitle {
+    font-size: 0.875rem;
+    color: var(--inst-text-muted);
+    margin-bottom: 0;
+}
+
+/* Step Progress Indicator */
+.installer-steps {
+    display: flex;
+    justify-content: space-between;
+    background-color: #f1f5f9;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--inst-border);
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--inst-text-muted);
+}
+
+.step-item.active {
+    color: var(--inst-primary);
+}
+
+.step-item.completed {
+    color: var(--inst-success);
+}
+
+.step-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #cbd5e1;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.step-item.active .step-badge {
+    background-color: var(--inst-primary);
+}
+
+.step-item.completed .step-badge {
+    background-color: var(--inst-success);
+}
+
+.installer-body-content {
+    padding: 30px;
+}
+
+.installer-footer {
+    background-color: #f8fafc;
+    border-top: 1px solid var(--inst-border);
+    padding: 16px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Requirement Table */
+.req-table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.req-table tr td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--inst-border);
+}
+
+.req-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--inst-primary) !important;
+    border-color: var(--inst-primary) !important;
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--inst-primary-hover) !important;
+    border-color: var(--inst-primary-hover) !important;
+}
+
+.btn-outline-secondary {
+    border-color: #cbd5e1;
+    color: var(--inst-text-main);
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f1f5f9;
+    color: var(--inst-text-main);
+}
+
+@media (max-width: 768px) {
+    .installer-steps {
+        overflow-x: auto;
+        padding: 10px 15px;
+    }
+    .step-item span.step-label {
+        display: none;
+    }
+    .installer-body-content {
+        padding: 20px 15px;
+    }
+    .installer-footer {
+        padding: 15px;
+    }
+}

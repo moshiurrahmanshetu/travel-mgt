@@ -66,6 +66,17 @@ function redirect(string $path): void
 }
 
 /**
+ * Check if the application has completed initial installation
+ * 
+ * @return bool
+ */
+function is_installed(): bool
+{
+    $lockFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'install.lock';
+    return file_exists($lockFile);
+}
+
+/**
  * Retrieve old input value from session or request
  * 
  * @param string $key

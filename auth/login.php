@@ -7,6 +7,11 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+// If not yet installed, redirect to installer
+if (!is_installed()) {
+    redirect('install/');
+}
+
 // If user is already logged in, redirect straight to dashboard
 if (is_logged_in()) {
     redirect('modules/dashboard/index.php');
@@ -32,14 +37,6 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="auth-body-content">
         <!-- Flash Messages -->
         <?= display_flash(); ?>
-
-        <!-- Demo credentials info card -->
-        <div class="demo-badge d-flex align-items-center">
-            <i class="bi bi-info-circle-fill me-2 fs-6 flex-shrink-0"></i>
-            <div>
-                <strong>Dev Credentials:</strong> <code>admin@example.com</code> / <code>Admin@12345</code>
-            </div>
-        </div>
 
         <form action="<?= url('auth/process-login.php'); ?>" method="POST" autocomplete="off">
             <?= csrf_field(); ?>
