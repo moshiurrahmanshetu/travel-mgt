@@ -357,15 +357,18 @@ INSERT INTO `permissions` (`id`, `name`, `slug`, `description`) VALUES
 (32, 'View Payments', 'payments.view', 'Can view payment transactions and receipts'),
 (33, 'Create Payments', 'payments.create', 'Can record new customer payments'),
 (34, 'Edit Payments', 'payments.edit', 'Can modify payment transaction records'),
-(35, 'Delete Payments', 'payments.delete', 'Can soft-delete payment transactions');
+(35, 'Delete Payments', 'payments.delete', 'Can soft-delete payment transactions'),
+(36, 'View Reports', 'reports.view', 'Can view management reports and business analytics dashboards'),
+(37, 'Export Reports', 'reports.export', 'Can download and export report datasets to CSV spreadsheets');
 
--- Assign Permissions to Administrator (All permissions 1-35)
+-- Assign Permissions to Administrator (All permissions 1-37)
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
 (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20),
 (1, 21), (1, 22), (1, 23), (1, 24), (1, 25),
 (1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31),
-(1, 32), (1, 33), (1, 34), (1, 35);
+(1, 32), (1, 33), (1, 34), (1, 35),
+(1, 36), (1, 37);
 
 -- Assign Permissions to Manager
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
@@ -373,7 +376,8 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 17), (2, 18), (2, 19),
 (2, 21), (2, 22), (2, 23), (2, 24),
 (2, 26), (2, 27), (2, 28), (2, 29), (2, 30), (2, 31),
-(2, 32), (2, 33), (2, 34), (2, 35);
+(2, 32), (2, 33), (2, 34), (2, 35),
+(2, 36), (2, 37);
 
 -- Assign Permissions to Staff
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
@@ -381,7 +385,8 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (3, 9), (3, 13), (3, 17),
 (3, 21), (3, 22),
 (3, 26), (3, 27),
-(3, 32), (3, 33);
+(3, 32), (3, 33),
+(3, 36);
 
 -- Seed Default Administrator
 -- Default credentials: admin@example.com / Admin@12345

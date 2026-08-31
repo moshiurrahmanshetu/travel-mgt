@@ -963,5 +963,65 @@ function get_booking_payment_summary(int $bookingId): array
     }
 }
 
+/**
+ * Sanitize a string field for safe CSV export to prevent spreadsheet formula injection attacks
+ * (Neutralizes leading '=', '+', '-', '@', tab, and carriage return characters)
+ * 
+ * @param mixed $value
+ * @return string
+ */
+function escape_csv_field($value): string
+{
+    $str = (string)($value ?? '');
+    if (strlen($str) > 0) {
+        $firstChar = $str[0];
+        if (in_array($firstChar, ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return "'" . $str;
+        }
+    }
+    return $str;
+}
+
+/**
+ * Stream sanitized data array to downloadable CSV file with proper headers and UTF-8 BOM
+ * 
+ * @param string $filename
+ * @param array $headers
+ * @param array $rows
+ * @return void
+ */
+function export_data_to_csv(string $filename, array $headers, array $rows): void
+{
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    $safeFilename = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $filename);
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $safeFilename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+
+    // Write UTF-8 BOM for accurate Microsoft Excel UTF-8 character recognition
+    fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+    // Write Header Row
+    $sanitizedHeaders = array_map('escape_csv_field', $headers);
+    fputcsv($output, $sanitizedHeaders);
+
+    // Write Data Rows
+    foreach ($rows as $row) {
+        $sanitizedRow = array_map('escape_csv_field', $row);
+        fputcsv($output, $sanitizedRow);
+    }
+
+    fclose($output);
+    exit;
+}
+
+
 
 

@@ -18,8 +18,13 @@ $statusParam = $_GET['status'] ?? '';
 $isBookingsAll = $isBookings && empty($statusParam) && (strpos($currentScript, 'create.php') === false && strpos($currentScript, 'edit.php') === false && strpos($currentScript, 'view.php') === false);
 $isBookingsPending = $isBookings && $statusParam === 'pending';
 $isBookingsConfirmed = $isBookings && $statusParam === 'confirmed';
-$isBookingsCancelled = $isBookings && $statusParam === 'cancelled';
 $isPayments = strpos($currentScript, '/modules/payments/') !== false;
+$isReports = strpos($currentScript, '/modules/reports/') !== false;
+$isReportsOverview = $isReports && (strpos($currentScript, 'index.php') !== false);
+$isReportsBookings = $isReports && (strpos($currentScript, 'bookings.php') !== false);
+$isReportsPayments = $isReports && (strpos($currentScript, 'payments.php') !== false);
+$isReportsTours = $isReports && (strpos($currentScript, 'tours.php') !== false);
+$isReportsCustomers = $isReports && (strpos($currentScript, 'customers.php') !== false);
 ?>
 <!-- Sidebar Navigation -->
 <aside id="admin-sidebar">
@@ -120,13 +125,36 @@ $isPayments = strpos($currentScript, '/modules/payments/') !== false;
 
             <!-- REPORTS Section -->
             <li class="sidebar-header">
-                <span>Reports</span>
+                <span>Reports & Analytics</span>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="sidebar-nav-link disabled" title="Available in Phase 06">
-                    <i class="bi bi-bar-chart-line nav-icon"></i>
-                    <span class="nav-link-text">Reports</span>
-                    <span class="badge badge-coming-soon ms-auto">Soon</span>
+                <a href="<?= url('modules/reports/index.php'); ?>" class="sidebar-nav-link <?= $isReportsOverview ? 'active' : ''; ?>">
+                    <i class="bi bi-speedometer nav-icon"></i>
+                    <span class="nav-link-text">Overview</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="<?= url('modules/reports/bookings.php'); ?>" class="sidebar-nav-link <?= $isReportsBookings ? 'active' : ''; ?>">
+                    <i class="bi bi-journal-text nav-icon"></i>
+                    <span class="nav-link-text">Booking Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="<?= url('modules/reports/payments.php'); ?>" class="sidebar-nav-link <?= $isReportsPayments ? 'active' : ''; ?>">
+                    <i class="bi bi-cash-stack nav-icon"></i>
+                    <span class="nav-link-text">Payment Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="<?= url('modules/reports/tours.php'); ?>" class="sidebar-nav-link <?= $isReportsTours ? 'active' : ''; ?>">
+                    <i class="bi bi-compass nav-icon"></i>
+                    <span class="nav-link-text">Tour Performance</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="<?= url('modules/reports/customers.php'); ?>" class="sidebar-nav-link <?= $isReportsCustomers ? 'active' : ''; ?>">
+                    <i class="bi bi-people nav-icon"></i>
+                    <span class="nav-link-text">Customer Summary</span>
                 </a>
             </li>
 

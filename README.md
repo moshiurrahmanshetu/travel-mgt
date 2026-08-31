@@ -190,18 +190,19 @@ Get-Content c:\xampp\htdocs\travel-mgt\database\database.sql | & "C:\xampp\mysql
 
 ## 🛡️ Security & Architecture Rules
 
-1. **Authoritative Source for Payments:** The `payments` table is the single source of truth for financial transactions. Booking fields (`paid_amount`, `due_amount`, `payment_status`) are dynamically synchronized based on completed, non-deleted payment records.
+1. **Authoritative Source for Payments & Revenue:** The `payments` table is the authoritative single source of truth for financial transactions. Booking totals and completed payments are dynamically aggregated. Cancelled bookings are excluded from active sales calculations.
 2. **Overpayment Protection:** Server-side validation strictly rejects any completed payment whose amount exceeds the current remaining balance of the booking.
-3. **Concurrency Protection with Row-Level Locking:** `store.php` executes inside a database transaction with `SELECT ... FOR UPDATE` locking to prevent simultaneous payments exceeding the booking total.
-4. **Immutable Transaction Amounts:** Completed payment amounts are immutable in `edit.php` to preserve accounting audit integrity.
-5. **Relational Data Integrity:** Foreign keys use `ON DELETE RESTRICT ON UPDATE CASCADE` to prevent accidental deletion of referenced bookings. Primary keys use stable `BIGINT UNSIGNED` IDs.
-6. **CSRF & RBAC:** All state-changing POST requests require valid CSRF tokens and server-side permission verification (`payments.view`, `payments.create`, `payments.edit`, `payments.delete`).
+3. **Concurrency Protection with Row-Level Locking:** Payment recording executes inside a database transaction with `SELECT ... FOR UPDATE` row-level locking.
+4. **CSV Export Security (Formula Injection Prevention):** All exported fields starting with dangerous formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are automatically escaped with a leading apostrophe (`'`) to neutralize spreadsheet formula execution vulnerabilities.
+5. **No Synthetic Report Tables:** Reports are dynamically generated using SQL aggregation (`COUNT()`, `SUM()`, `GROUP BY`, `JOIN`) from core entity tables (`tour_packages`, `customers`, `bookings`, `payments`) without duplicating state in static report tables.
+6. **Immutable Transaction Amounts:** Completed payment amounts are immutable in `edit.php` to preserve accounting audit integrity.
+7. **CSRF & RBAC:** All state-changing POST requests require valid CSRF tokens and server-side permission verification (`reports.view`, `reports.export`).
 
 ---
 
 ## 🧭 Navigation & Module Status
 
-- **Dashboard:** Operational with live revenue, collections, and booking metrics (`modules/dashboard/index.php`)
+- **Dashboard:** Operational with live revenue, collections, upcoming confirmed departures, and recent payments (`modules/dashboard/index.php`)
 - **Tour Packages:** Operational (`modules/tours/index.php`)
 - **Tour Categories:** Operational (`modules/tours/categories.php`)
 - **Tour Destinations:** Operational (`modules/tours/destinations.php`)
@@ -213,9 +214,14 @@ Get-Content c:\xampp\htdocs\travel-mgt\database\database.sql | & "C:\xampp\mysql
   - Cancelled Bookings (`modules/bookings/index.php?status=cancelled`)
 - **Payments:** Operational (`modules/payments/index.php`)
   - Record Payment (`modules/payments/create.php`)
+- **Reports & Analytics:** Operational (`modules/reports/index.php`)
+  - Executive Overview (`modules/reports/index.php`)
+  - Detailed Booking Reports (`modules/reports/bookings.php`)
+  - Payment & Collection Reports (`modules/reports/payments.php`)
+  - Tour Package Performance (`modules/reports/tours.php`)
+  - Customer Summary & Value (`modules/reports/customers.php`)
 - **My Profile:** Operational (`modules/profile/index.php`)
 - **Avatar Upload:** Operational (`modules/profile/upload-avatar.php`)
 - **Change Password:** Operational (`modules/profile/change-password.php`)
 - **Users & Roles Foundation:** Operational (`modules/users/index.php`)
 - **Settings Foundation:** Operational (`modules/settings/index.php`)
-- **Future Modules (Phase 06):** Reports is marked as *Coming Soon* in the navigation.
